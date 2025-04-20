@@ -15,11 +15,22 @@ import (
 
 // FranchiseWithOwner represents a franchise with owner details
 type FranchiseWithOwner struct {
-	Franchise   database.Franchise
-	OwnerName   string
-	OwnerEmail  string
-	OwnerPhone  string
-	AreaPolygon string
+	ID            uint   `json:"id"`
+	Name          string `json:"name"`
+	OwnerName     string `json:"owner_name"`
+	OwnerEmail    string `json:"owner_email"`
+	OwnerPhone    string `json:"owner_phone"`
+	Address       string `json:"address"`
+	City          string `json:"city"`
+	State         string `json:"state"`
+	ZipCode       string `json:"zip_code"`
+	Phone         string `json:"phone"`
+	Email         string `json:"email"`
+	AreaPolygon   string `json:"area_polygon"`
+	IsActive      bool   `json:"is_active"`
+	ApprovalState string `json:"approval_state"`
+	CreatedAt     string `json:"created_at"`
+	UpdatedAt     string `json:"updated_at"`
 }
 
 // FranchiseRequest contains data for franchise creation or update
@@ -174,14 +185,36 @@ func GetFranchises(c *gin.Context) {
 	}
 
 	userID, _ := c.Get("userID")
-	userIDUint := uint(userID.(float64))
+	var userIDUint uint
+
+	if role != "admin" {
+		userIDUint = uint(userID.(float64))
+	}
 
 	// Define the response structure
 	// Using the already defined FranchiseWithOwner struct
 
 	var franchises []FranchiseWithOwner
+
 	query := database.DB.Table("franchises").
-		Select("franchises.*, users.name as owner_name").
+		Select(`
+			franchises.id, 
+			franchises.name, 
+			franchises.address, 
+			franchises.city, 
+			franchises.state, 
+			franchises.zip_code, 
+			franchises.phone, 
+			franchises.email, 
+			franchises.area_polygon, 
+			franchises.is_active, 
+			franchises.approval_state, 
+			franchises.created_at, 
+			franchises.updated_at, 
+			users.name as owner_name, 
+			users.email as owner_email, 
+			users.phone as owner_phone
+		`).
 		Joins("JOIN users ON franchises.owner_id = users.id").
 		Order("franchises.created_at DESC")
 
@@ -208,7 +241,7 @@ func GetFranchises(c *gin.Context) {
 	// Process AreaPolygon to ensure it's proper JSON format for the response
 	for i := range franchises {
 		if franchises[i].AreaPolygon != "" {
-			franchises[i].Franchise.AreaPolygon = string(json.RawMessage(franchises[i].Franchise.AreaPolygon))
+			franchises[i].AreaPolygon = string(json.RawMessage(franchises[i].AreaPolygon))
 		}
 	}
 

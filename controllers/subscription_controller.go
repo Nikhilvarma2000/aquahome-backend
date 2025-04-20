@@ -101,6 +101,69 @@ type SubscriptionUpdateRequest struct {
 	PauseEndDate string `json:"pause_end_date,omitempty"`
 }
 
+func GetAllSubscriptions(c *gin.Context) {
+	role := c.GetString("role")
+	if role != database.RoleAdmin {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied"})
+		return
+	}
+
+	var subscriptions []SubscriptionWithProduct
+
+	// Use GORM to fetch subscriptions with related product information
+	err := database.DB.Table("subscriptions").
+		Select(`
+                        subscriptions.id, 
+                        subscriptions.order_id, 
+                        subscriptions.customer_id, 
+                        subscriptions.product_id, 
+                        subscriptions.franchise_id, 
+                        subscriptions.status, 
+                        subscriptions.start_date, 
+                        subscriptions.end_date, 
+                        subscriptions.next_billing_date, 
+                        subscriptions.monthly_rent,
+                        subscriptions.created_at, 
+                        subscriptions.updated_at,
+                        products.name as product_name, 
+                        products.image_url as product_image,
+                        franchises.name as franchise_name,
+                        CASE WHEN subscriptions.status = ? THEN true ELSE false END as is_active,
+                        subscriptions.next_maintenance as next_service
+                `, database.SubscriptionStatusActive).
+		Joins("JOIN products ON subscriptions.product_id = products.id").
+		Joins("LEFT JOIN franchises ON subscriptions.franchise_id = franchises.id").
+		Order("subscriptions.created_at DESC").
+		Find(&subscriptions).Error
+
+	if err != nil {
+		log.Printf("Database error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve subscriptions"})
+		return
+	}
+
+	// Add calculated fields
+	for i := range subscriptions {
+		// Calculate rental duration based on start and end dates
+		duration := int(subscriptions[i].EndDate.Sub(subscriptions[i].StartDate).Hours() / 24 / 30)
+		subscriptions[i].RentalDuration = duration
+
+		// Calculate remaining duration
+		now := time.Now()
+		if subscriptions[i].EndDate.After(now) {
+			remaining := int(subscriptions[i].EndDate.Sub(now).Hours() / 24 / 30)
+			subscriptions[i].RemainingDuration = remaining
+		} else {
+			subscriptions[i].RemainingDuration = 0
+		}
+
+		// Set default auto-renew for now (this would normally come from the database)
+		subscriptions[i].AutoRenew = false
+	}
+
+	c.JSON(http.StatusOK, subscriptions)
+}
+
 // GetCustomerSubscriptions gets subscriptions for the authenticated customer
 func GetCustomerSubscriptions(c *gin.Context) {
 	role := c.GetString("role")
@@ -109,19 +172,22 @@ func GetCustomerSubscriptions(c *gin.Context) {
 		return
 	}
 
-	userID := c.GetString("user_id")
-	customerIDUint, err := strconv.ParseUint(userID, 10, 64)
-	if err != nil {
-		log.Printf("Invalid user ID: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+	userID, _ := c.Get("user_id")
+
+	// Convert userID to uint
+	var customerID uint
+	if id, ok := userID.(uint); ok {
+		customerID = id
+	} else {
+		log.Printf("Failed to convert user_id to uint: %v", userID)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID"})
 		return
 	}
-	customerID := uint(customerIDUint)
 
 	var subscriptions []SubscriptionWithProduct
 
 	// Use GORM to fetch subscriptions with related product information
-	err = database.DB.Table("subscriptions").
+	err := database.DB.Table("subscriptions").
 		Select(`
                         subscriptions.id, 
                         subscriptions.order_id, 

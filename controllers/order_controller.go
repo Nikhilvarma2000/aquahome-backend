@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -196,8 +197,17 @@ func GetCustomerOrders(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("userID")
-	customerID := userID.(int64)
+	userID, _ := c.Get("user_id")
+	fmt.Printf("userID: %+v\n", userID)
+
+	var customerID uint
+	if id, ok := userID.(uint); ok {
+		customerID = id
+	} else {
+		log.Printf("Failed to convert user_id to uint: %v", userID)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID"})
+		return
+	}
 
 	type OrderWithProduct struct {
 		database.Order
@@ -212,6 +222,37 @@ func GetCustomerOrders(c *gin.Context) {
 		Select("orders.*, products.name as product_name, products.image_url as product_image").
 		Joins("JOIN products ON orders.product_id = products.id").
 		Where("orders.customer_id = ?", customerID).
+		Order("orders.created_at DESC").
+		Find(&orders)
+
+	if result.Error != nil {
+		log.Printf("Database error: %v", result.Error)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, orders)
+}
+
+func GetAllOrders(c *gin.Context) {
+	role, exists := c.Get("role")
+	if !exists || role != "admin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied"})
+		return
+	}
+
+	type OrderWithProduct struct {
+		database.Order
+		ProductName  string `json:"product_name"`
+		ProductImage string `json:"product_image"`
+	}
+
+	var orders []OrderWithProduct
+
+	// Use GORM's joins and select capabilities to get orders with product info
+	result := database.DB.Table("orders").
+		Select("orders.*, products.name as product_name, products.image_url as product_image").
+		Joins("JOIN products ON orders.product_id = products.id").
 		Order("orders.created_at DESC").
 		Find(&orders)
 

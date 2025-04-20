@@ -34,7 +34,7 @@ var AppConfig Config
 // InitConfig initializes the application configuration
 func InitConfig() {
 	// Set default database driver to PostgreSQL
-	dbDriver := getEnv("DB_DRIVER", "sqlite")
+	dbDriver := getEnv("DB_DRIVER", "postgres")
 
 	AppConfig = Config{
 		DBDriver:       dbDriver,

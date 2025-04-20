@@ -55,6 +55,12 @@ func SetupRoutes(r *gin.Engine) {
 			admin.GET("/users/:id", controllers.GetUserByID)
 			admin.GET("/users/role/:role", controllers.GetUsersByRole)
 
+			// orders
+			admin.GET("/orders", controllers.GetAllOrders)
+
+			// subscriptions
+			admin.GET("/subscriptions", controllers.GetAllSubscriptions)
+
 			// GORM versions
 			admin.GET("/users/:id/v2", controllers.GetUserByIDNew)
 			admin.GET("/users/role/:role/v2", controllers.GetUsersByRoleNew)

