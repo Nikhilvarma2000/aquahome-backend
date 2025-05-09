@@ -48,7 +48,7 @@ type FranchiseRequest struct {
 // CreateFranchise creates a new franchise (Franchise Owner only)
 func CreateFranchise(c *gin.Context) {
 	role, exists := c.Get("role")
-	if !exists || role != "franchise_owner" {
+	if !exists || (role != "franchise_owner" && role != "admin") {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied"})
 		return
 	}
@@ -58,6 +58,7 @@ func CreateFranchise(c *gin.Context) {
 
 	var franchiseRequest FranchiseRequest
 	if err := c.ShouldBindJSON(&franchiseRequest); err != nil {
+		log.Printf("Invalid request data: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
 		return
 	}
@@ -249,7 +250,7 @@ func GetFranchises(c *gin.Context) {
 }
 
 // GetFranchiseByID gets a franchise by ID
-func GetFranchiseByID(c *gin.Context) {
+func PublicGetFranchiseByID(c *gin.Context) {
 	franchiseIDStr := c.Param("id")
 	franchiseID, err := strconv.ParseUint(franchiseIDStr, 10, 64)
 	if err != nil {
@@ -592,16 +593,19 @@ func RejectFranchise(c *gin.Context) {
 func isValidGeoJSONPolygon(polygon json.RawMessage) bool {
 	var geoJSON map[string]interface{}
 	if err := json.Unmarshal(polygon, &geoJSON); err != nil {
+		log.Printf("Invalid GeoJSON: %v", err)
 		return false
 	}
 
 	// Check if it's a valid GeoJSON
 	if geoJSON["type"] != "Polygon" && geoJSON["type"] != "MultiPolygon" {
+		log.Printf("Invalid GeoJSON type: %v", geoJSON["type"])
 		return false
 	}
 
 	// Check if coordinates exist
 	if _, ok := geoJSON["coordinates"]; !ok {
+		log.Printf("GeoJSON missing coordinates")
 		return false
 	}
 
@@ -614,12 +618,14 @@ func overlapsExistingFranchise(polygon json.RawMessage) bool {
 	// For SQLite, you might want to use SpatiaLite extension for proper spatial queries.
 
 	// For now, let's assume no overlap to allow application to work
+	log.Printf("Checking for overlapping franchises (not implemented)")
 	return false
 }
 
 // Helper function to check if a polygon overlaps with other franchises (excluding the given one)
 func overlapsOtherFranchise(polygon json.RawMessage, excludeFranchiseID int64) bool {
 	// Similar to above, this is a simplified check
+	log.Printf("Checking for overlapping franchises excluding ID %d (not implemented)", excludeFranchiseID)
 	return false
 }
 

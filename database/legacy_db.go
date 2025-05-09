@@ -13,87 +13,75 @@ import (
 	"aquahome/config"
 )
 
-// LegacyDB is the global database instance for raw SQL operations
+// LegacyDB is the global raw SQL DB instance
 var LegacyDB *sql.DB
 
-// InitLegacyDB initializes the legacy database connection for raw SQL operations
+// InitLegacyDB connects to the legacy DB
 func InitLegacyDB() error {
 	var err error
 
 	switch config.AppConfig.DBDriver {
 	case "postgres":
-		// Check if DATABASE_URL is provided (Replit environment)
 		dbURL := os.Getenv("DATABASE_URL")
 		var connStr string
 
 		if dbURL != "" {
-			// Use the DATABASE_URL directly
 			connStr = dbURL
-			log.Println("Using DATABASE_URL environment variable for PostgreSQL legacy connection")
+			log.Println("Using DATABASE_URL for PostgreSQL legacy DB")
 		} else {
-			// Construct the PostgreSQL connection string from individual parameters
 			connStr = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 				config.AppConfig.DBHost,
 				config.AppConfig.DBPort,
 				config.AppConfig.DBUser,
 				config.AppConfig.DBPassword,
-				config.AppConfig.DBName)
-
-			// Log connection attempt (without password)
-			log.Printf("Attempting to connect to PostgreSQL legacy DB at host=%s port=%s user=%s dbname=%s",
+				config.AppConfig.DBName,
+			)
+			log.Printf("Connecting to legacy DB: host=%s port=%s user=%s dbname=%s",
 				config.AppConfig.DBHost,
 				config.AppConfig.DBPort,
 				config.AppConfig.DBUser,
-				config.AppConfig.DBName)
+				config.AppConfig.DBName,
+			)
 		}
 
 		LegacyDB, err = sql.Open("postgres", connStr)
 		if err != nil {
-			log.Printf("Failed to connect to PostgreSQL legacy database: %v", err)
+			log.Printf("PostgreSQL legacy connection failed: %v", err)
 			return err
 		}
-
-		log.Println("PostgreSQL legacy database connection established successfully")
 
 	case "sqlite", "sqlite3":
-		// Ensure the directory exists
 		dbDir := filepath.Dir(config.AppConfig.DBPath)
 		if err := os.MkdirAll(dbDir, os.ModePerm); err != nil {
-			log.Printf("Failed to create directory for SQLite database: %v", err)
+			log.Printf("Failed to create directory for SQLite DB: %v", err)
 			return err
 		}
 
-		// Open SQLite connection
 		LegacyDB, err = sql.Open("sqlite3", config.AppConfig.DBPath)
 		if err != nil {
-			log.Printf("Failed to connect to SQLite legacy database: %v", err)
+			log.Printf("SQLite legacy connection failed: %v", err)
 			return err
 		}
 
-		// Enable foreign key constraints for SQLite
 		_, err = LegacyDB.Exec("PRAGMA foreign_keys = ON")
 		if err != nil {
-			log.Printf("Failed to enable foreign keys in SQLite: %v", err)
+			log.Printf("Failed to enable foreign keys: %v", err)
 			return err
 		}
-
-		log.Printf("SQLite legacy database connection established successfully at %s", config.AppConfig.DBPath)
-
 	default:
-		return fmt.Errorf("unsupported database driver: %s", config.AppConfig.DBDriver)
+		return fmt.Errorf("Unsupported DB driver: %s", config.AppConfig.DBDriver)
 	}
 
-	// Test the connection
-	err = LegacyDB.Ping()
-	if err != nil {
-		log.Printf("Failed to ping legacy database: %v", err)
+	if err = LegacyDB.Ping(); err != nil {
+		log.Printf("Legacy DB ping failed: %v", err)
 		return err
 	}
 
+	log.Println("✅ Legacy DB connected successfully")
 	return nil
 }
 
-// CloseLegacyDB closes the legacy database connection
+// CloseLegacyDB safely closes the legacy DB
 func CloseLegacyDB() error {
 	if LegacyDB != nil {
 		return LegacyDB.Close()

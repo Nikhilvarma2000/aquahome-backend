@@ -36,25 +36,27 @@ func main() {
 		os.Setenv("DB_NAME", os.Getenv("PGDATABASE"))
 	}
 
-	// Initialize configuration
+	// Initialize config
 	config.InitConfig()
 
-	// Set up the Gin router
+	// Setup router
 	r := gin.Default()
 
-	// Configure CORS
-	r.Use(cors.Default())
-	// r.Use(cors.New(cors.Config{
-	// 	AllowOrigins:     []string{"*"},
-	// 	AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-	// 	AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
-	// 	ExposeHeaders:    []string{"Content-Length"},
-	// 	AllowCredentials: true,
-	// }))
+	// CORS settings
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
 
-	// Initialize database
+	// Initialize DBs
 	if err := database.InitDB(); err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
+		log.Fatalf("Failed to initialize GORM database: %v", err)
+	}
+	if err := database.InitLegacyDB(); err != nil {
+		log.Fatalf("Failed to initialize legacy database: %v", err)
 	}
 
 	// Run migrations
@@ -62,18 +64,16 @@ func main() {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
-	// Set up routes
+	// Setup routes (real AuthMiddleware is applied inside routes)
 	routes.SetupRoutes(r)
 
-	// Determine port for HTTP service
+	// Start server
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "5000" // Default port for Replit compatibility
+		port = "5000"
 	}
-
-	// Start the server
-	log.Printf("Starting server on port %s...", port)
+	log.Printf("🚀 Server running at http://0.0.0.0:%s", port)
 	if err := r.Run("0.0.0.0:" + port); err != nil {
-		log.Fatalf("Error starting server: %v", err)
+		log.Fatalf("Server failed: %v", err)
 	}
 }

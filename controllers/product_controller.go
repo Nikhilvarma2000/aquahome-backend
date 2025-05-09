@@ -44,7 +44,6 @@ func CreateProduct(c *gin.Context) {
 		productRequest.MaintenanceCycle = 90 // Default 90 days
 	}
 
-	// Create product with GORM
 	product := database.Product{
 		Name:             productRequest.Name,
 		Description:      productRequest.Description,
@@ -68,32 +67,22 @@ func CreateProduct(c *gin.Context) {
 	c.JSON(http.StatusCreated, product)
 }
 
-// GetProducts gets all active products
+// GetProducts gets all products (admin sees all, customer/public sees all but can only order active ones)
 func GetProducts(c *gin.Context) {
-	activeOnly := true
-	roleInterface, exists := c.Get("role")
-	if exists {
-		role := roleInterface.(string)
-		if role == "admin" {
-			// Admin can see all products, including inactive ones
-			activeParam := c.DefaultQuery("active", "true")
-			activeOnly = activeParam == "true"
-		}
-	}
-
 	var products []database.Product
 	query := database.DB
 
-	// Apply filter for active products if needed
-	if activeOnly {
-		query = query.Where("is_active = ?", true)
+	roleInterface, exists := c.Get("role")
+	if exists {
+		role := roleInterface.(string)
+		if role == "customer" {
+			query = query.Where("is_active = ?", true)
+		}
 	}
 
-	// Execute query
-	result := query.Find(&products)
-	if result.Error != nil {
-		log.Printf("Database error: %v", result.Error)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Server error"})
+	if err := query.Find(&products).Error; err != nil {
+		log.Println("GetProducts DB error:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get products"})
 		return
 	}
 
@@ -102,32 +91,22 @@ func GetProducts(c *gin.Context) {
 
 // GetProductByID gets a product by ID
 func GetProductByID(c *gin.Context) {
-	productIDStr := c.Param("id")
-	productID, err := strconv.ParseUint(productIDStr, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID"})
-		return
-	}
-
+	id := c.Param("id")
 	var product database.Product
-	result := database.DB.First(&product, productID)
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+
+	if err := database.DB.First(&product, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
-			return
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "DB error"})
 		}
-		log.Printf("Database error: %v", result.Error)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Server error"})
 		return
 	}
 
-	// If the product is inactive, only admins can see it
-	if !product.IsActive {
-		roleInterface, exists := c.Get("role")
-		if !exists || roleInterface.(string) != "admin" {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
-			return
-		}
+	roleInterface, _ := c.Get("role")
+	if role, ok := roleInterface.(string); ok && role == "customer" && !product.IsActive {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Product not available"})
+		return
 	}
 
 	c.JSON(http.StatusOK, product)
@@ -154,9 +133,8 @@ func UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	// Find the product
 	var product database.Product
-	result := database.DB.First(&product, productID)
+	result := database.DB.First(&product, uint(productID))
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
@@ -167,7 +145,6 @@ func UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	// Update product with GORM
 	product.Name = productRequest.Name
 	product.Description = productRequest.Description
 	product.ImageURL = productRequest.ImageURL
@@ -189,7 +166,7 @@ func UpdateProduct(c *gin.Context) {
 	c.JSON(http.StatusOK, product)
 }
 
-// DeleteProduct sets a product as inactive (Admin only)
+// DeleteProduct permanently deletes a product (Admin only)
 func DeleteProduct(c *gin.Context) {
 	role, exists := c.Get("role")
 	if !exists || role != "admin" {
@@ -204,9 +181,8 @@ func DeleteProduct(c *gin.Context) {
 		return
 	}
 
-	// Find the product
 	var product database.Product
-	result := database.DB.First(&product, productID)
+	result := database.DB.First(&product, uint(productID))
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
@@ -217,14 +193,39 @@ func DeleteProduct(c *gin.Context) {
 		return
 	}
 
-	// Set product as inactive with GORM
-	product.IsActive = false
-	result = database.DB.Save(&product)
+	result = database.DB.Delete(&product)
 	if result.Error != nil {
 		log.Printf("Database error: %v", result.Error)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error deleting product"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Product deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Product deleted permanently"})
+}
+
+// ToggleProductStatus toggles the IsActive status of a product (Admin only)
+func ToggleProductStatus(c *gin.Context) {
+	id := c.Param("id")
+	var product database.Product
+
+	if err := database.DB.First(&product, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
+		return
+	}
+
+	var body struct {
+		IsActive bool `json:"isActive"` // ✅ MATCHES frontend key
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+	log.Println("Received toggle status:", body.IsActive)
+	product.IsActive = body.IsActive
+    if err := database.DB.Save(&product).Error; err != nil {
+    log.Println("Save failed:", err)
+    	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update product status"})
+    	return
+    }
+	c.JSON(http.StatusOK, product)
 }

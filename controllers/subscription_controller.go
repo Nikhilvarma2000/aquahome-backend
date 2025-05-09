@@ -172,7 +172,8 @@ func GetCustomerSubscriptions(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
+	userID, _ := c.Get("userID")
+
 
 	// Convert userID to uint
 	var customerID uint
@@ -773,3 +774,44 @@ func CancelSubscription(c *gin.Context) {
 		"message": "Subscription cancelled successfully",
 	})
 }
+// CreateSubscription creates a new subscription (Customer only)
+func CreateSubscription(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var subscription database.Subscription
+	if err := c.ShouldBindJSON(&subscription); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+subscription.CustomerID = userID.(uint)
+	if err := database.DB.Create(&subscription).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create subscription"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, subscription)
+}
+
+// DeleteSubscription deletes a subscription (Admin only)
+func DeleteSubscription(c *gin.Context) {
+	role, exists := c.Get("role")
+	if !exists || role != "admin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		return
+	}
+
+	subscriptionID := c.Param("id")
+	if err := database.DB.Delete(&database.Subscription{}, subscriptionID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete subscription"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Subscription deleted successfully"})
+}
+
+

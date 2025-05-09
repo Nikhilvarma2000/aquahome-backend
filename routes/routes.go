@@ -15,11 +15,8 @@ func SetupRoutes(r *gin.Engine) {
 		// Authentication routes
 		auth := public.Group("/auth")
 		{
-			// Old functions maintained for backward compatibility
 			auth.POST("/login", controllers.Login)
 			auth.POST("/register", controllers.Register)
-
-			// New GORM-based functions
 			auth.POST("/login/v2", controllers.LoginNew)
 			auth.POST("/register/v2", controllers.RegisterNew)
 		}
@@ -33,121 +30,97 @@ func SetupRoutes(r *gin.Engine) {
 	protected := r.Group("/api")
 	protected.Use(middleware.AuthMiddleware())
 	{
-		// Refresh token
 		protected.POST("/auth/refresh", controllers.RefreshToken)
 		protected.POST("/auth/refresh/v2", controllers.RefreshTokenNew)
 
-		// User profile - Legacy SQL versions
 		protected.GET("/profile", controllers.GetUserProfile)
 		protected.PUT("/profile", controllers.UpdateUserProfile)
 		protected.POST("/profile/change-password", controllers.ChangePassword)
-
-		// User profile - GORM versions
 		protected.GET("/profile/v2", controllers.GetUserProfileNew)
 		protected.PUT("/profile/v2", controllers.UpdateUserProfileNew)
 		protected.POST("/profile/change-password/v2", controllers.ChangePasswordNew)
 
-		// User management (Admin only)
+		// Admin routes
 		admin := protected.Group("/admin")
 		admin.Use(middleware.AdminAuthMiddleware())
 		{
-			// Legacy SQL versions
 			admin.GET("/users/:id", controllers.GetUserByID)
 			admin.GET("/users/role/:role", controllers.GetUsersByRole)
-
-			// orders
-			admin.GET("/orders", controllers.GetAllOrders)
-
-			// subscriptions
-			admin.GET("/subscriptions", controllers.GetAllSubscriptions)
-
-			// GORM versions
+			admin.GET("/orders", controllers.AdminGetOrders)
 			admin.GET("/users/:id/v2", controllers.GetUserByIDNew)
 			admin.GET("/users/role/:role/v2", controllers.GetUsersByRoleNew)
-		}
+			admin.GET("/dashboard", controllers.AdminDashboard)
 
-		// Products management
-		products := protected.Group("/products")
-		{
-			// Admin only endpoints
-			products.POST("", middleware.AdminAuthMiddleware(), controllers.CreateProduct)
-			products.PUT("/:id", middleware.AdminAuthMiddleware(), controllers.UpdateProduct)
-			products.DELETE("/:id", middleware.AdminAuthMiddleware(), controllers.DeleteProduct)
+			// ✅ Products Management
+			admin.POST("/products", controllers.CreateProduct)
+			admin.GET("/products", controllers.GetProducts)
+			admin.GET("/products/:id", controllers.GetProductByID)
+			admin.PUT("/products/:id", controllers.UpdateProduct)
+			admin.DELETE("/products/:id", controllers.DeleteProduct)
+			admin.PATCH("/products/:id/toggle-status", controllers.ToggleProductStatus)
+			admin.PATCH("/franchises/:id", controllers.AdminUpdateFranchise)
+			admin.POST("/franchises", controllers.CreateFranchise)
+			admin.PATCH("/orders/:id/assign", controllers.AssignOrderToFranchise)
+
+			//  this route for fetching all franchises
+			admin.GET("/franchises", controllers.GetAllFranchises)
 		}
 
 		// Orders
 		orders := protected.Group("/orders")
 		{
-			// Customer endpoints
 			orders.POST("", middleware.CustomerAuthMiddleware(), controllers.CreateOrder)
 			orders.GET("/customer", middleware.CustomerAuthMiddleware(), controllers.GetCustomerOrders)
-
-			// Admin and Franchise owner endpoints
 			orders.PUT("/:id/status", middleware.AdminOrFranchiseAuthMiddleware(), controllers.UpdateOrderStatus)
-
-			// Common endpoints (with role-based permissions within the handler)
 			orders.GET("/:id", controllers.GetOrderByID)
 		}
 
 		// Subscriptions
 		subscriptions := protected.Group("/subscriptions")
 		{
-			// Customer endpoints
+			subscriptions.POST("", middleware.CustomerAuthMiddleware(), controllers.CreateSubscription)
 			subscriptions.GET("/customer", middleware.CustomerAuthMiddleware(), controllers.GetCustomerSubscriptions)
 			subscriptions.PUT("/:id", middleware.CustomerAuthMiddleware(), controllers.UpdateSubscription)
 			subscriptions.POST("/:id/cancel", middleware.CustomerAuthMiddleware(), controllers.CancelSubscription)
-
-			// Common endpoints (with role-based permissions within the handler)
-			// subscriptions.GET("/:id", controllers.GetSubscriptionByID)
 		}
 
 		// Service requests
 		services := protected.Group("/services")
 		{
-			// Customer endpoints
-			services.POST("", middleware.CustomerAuthMiddleware(), controllers.CreateServiceRequestNew)
-			services.POST("/:id/feedback", middleware.CustomerAuthMiddleware(), controllers.SubmitServiceFeedbackNew)
-			services.POST("/:id/cancel", middleware.CustomerAuthMiddleware(), controllers.CancelServiceRequestNew)
-
-			// Old routes kept for backward compatibility until we fully migrate
-			// services.POST("/:id/rate", middleware.CustomerAuthMiddleware(), controllers.RateServiceRequest)
-			// services.POST("/:id/assign", middleware.AdminOrFranchiseAuthMiddleware(), controllers.AssignServiceRequest)
-
-			// Common endpoints (with role-based permissions within the handler)
-			services.GET("", controllers.GetServiceRequestsNew)
-			services.GET("/:id", controllers.GetServiceRequestByIDNew)
-			services.PUT("/:id", controllers.UpdateServiceRequestNew)
+			services.POST("", middleware.CustomerAuthMiddleware(), controllers.CreateServiceRequest)
+			services.POST("/:id/feedback", middleware.CustomerAuthMiddleware(), controllers.SubmitServiceFeedback)
+			services.POST("/:id/cancel", middleware.CustomerAuthMiddleware(), controllers.CancelServiceRequest)
+			services.GET("", controllers.GetServiceRequests)
+			services.GET("/:id", controllers.GetServiceRequestByID)
+			services.PUT("/:id", controllers.UpdateServiceRequest)
 		}
 
 		// Franchises
 		franchises := protected.Group("/franchises")
 		{
-			// Franchise owner endpoints
 			franchises.POST("", middleware.FranchiseOwnerAuthMiddleware(), controllers.CreateFranchise)
-
-			// Admin endpoints
 			franchises.POST("/:id/approve", middleware.AdminAuthMiddleware(), controllers.ApproveFranchise)
 			franchises.POST("/:id/reject", middleware.AdminAuthMiddleware(), controllers.RejectFranchise)
-
-			// Common endpoints
-			franchises.GET("", controllers.GetFranchises)
-			franchises.GET("/:id", controllers.GetFranchiseByID)
 			franchises.PUT("/:id", middleware.AdminOrFranchiseAuthMiddleware(), controllers.UpdateFranchise)
 			franchises.GET("/:id/service-agents", middleware.AdminOrFranchiseAuthMiddleware(), controllers.GetFranchiseServiceAgents)
 			franchises.GET("/search", controllers.SearchFranchises)
+
+			//this route for dashboard
+			franchises.GET("/dashboard", controllers.GetFranchiseDashboard)
+
 		}
 
 		// Payments
 		payments := protected.Group("/payments")
 		{
-			// Customer endpoints
 			payments.POST("/generate-order", middleware.CustomerAuthMiddleware(), controllers.GeneratePaymentOrder)
 			payments.POST("/generate-monthly", middleware.CustomerAuthMiddleware(), controllers.GenerateMonthlyPayment)
 			payments.POST("/verify", middleware.CustomerAuthMiddleware(), controllers.VerifyPayment)
-
-			// Common endpoints (with role-based permissions within the handler)
 			payments.GET("", controllers.GetPaymentHistory)
 			payments.GET("/:id", controllers.GetPaymentByID)
 		}
+
+		// Add this route for franchise dashboard
+		protected.GET("/franchise/dashboard", controllers.GetFranchiseDashboard)
 	}
 }

@@ -37,16 +37,23 @@ type FeedbackRequest struct {
 }
 
 // GetServiceRequests returns service requests based on user role
+// GetServiceRequests returns service requests based on user role
 func GetServiceRequests(c *gin.Context) {
-	userID := c.GetString("user_id")
-	userIDInt, err := strconv.ParseUint(userID, 10, 64)
-	if err != nil {
-		log.Printf("Invalid user ID: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
-		return
-	}
+	userIDRaw, exists := c.Get("userID")
+    if !exists {
+    	c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+    	return
+    }
 
+    userID, ok := userIDRaw.(uint)
+    if !ok {
+    	c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID format"})
+    	return
+    }
+	userIDInt := uint64(userID)
 	role := c.GetString("role")
+
+	var err error // ✅ Declare err here to avoid undefined error in switch
 
 	type ServiceRequestWithDetails struct {
 		ID               uint       `json:"id"`

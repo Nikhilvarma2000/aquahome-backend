@@ -132,8 +132,8 @@ func RegisterNew(c *gin.Context) {
 		City:         registerRequest.City,
 		State:        registerRequest.State,
 		ZipCode:      registerRequest.ZipCode,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+		//CreatedAt:    time.Now(),
+		//UpdatedAt:    time.Now(),
 	}
 
 	// Start transaction
@@ -159,8 +159,8 @@ func RegisterNew(c *gin.Context) {
 		Message:   "Thank you for registering with AquaHome! We're excited to have you with us.",
 		Type:      "welcome",
 		IsRead:    false,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		//CreatedAt: time.Now(),
+		//UpdatedAt: time.Now(),
 	}
 
 	if err := tx.Create(&notification).Error; err != nil {
@@ -199,7 +199,7 @@ func RegisterNew(c *gin.Context) {
 
 // RefreshTokenNew generates a new token for a logged in user using GORM
 func RefreshTokenNew(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID, _ := c.Get("userID")
 	email, _ := c.Get("email")
 	role, _ := c.Get("role")
 
@@ -262,7 +262,7 @@ func ForgotPasswordNew(c *gin.Context) {
 		UserID:    user.ID,
 		Token:     resetToken,
 		ExpiresAt: expiryTime,
-		CreatedAt: time.Now(),
+		//CreatedAt: time.Now(),
 	}
 
 	if err := database.DB.Create(&resetRequest).Error; err != nil {

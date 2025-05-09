@@ -34,10 +34,11 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Store user information in context
-		c.Set("user_id", claims.UserID)
+		// ✅ Directly use UserID, already uint
+		c.Set("userID", claims.UserID)
 		c.Set("email", claims.Email)
 		c.Set("role", claims.Role)
+
 		c.Next()
 	}
 }
@@ -65,32 +66,26 @@ func RoleAuthMiddleware(roles ...string) gin.HandlerFunc {
 	}
 }
 
-// AdminAuthMiddleware validates admin role
 func AdminAuthMiddleware() gin.HandlerFunc {
 	return RoleAuthMiddleware("admin")
 }
 
-// FranchiseOwnerAuthMiddleware validates franchise owner role
 func FranchiseOwnerAuthMiddleware() gin.HandlerFunc {
 	return RoleAuthMiddleware("admin", "franchise_owner")
 }
 
-// CustomerAuthMiddleware validates customer role
 func CustomerAuthMiddleware() gin.HandlerFunc {
 	return RoleAuthMiddleware("admin", "customer")
 }
 
-// ServiceAgentAuthMiddleware validates service agent role
 func ServiceAgentAuthMiddleware() gin.HandlerFunc {
 	return RoleAuthMiddleware("admin", "service_agent")
 }
 
-// AdminOrFranchiseAuthMiddleware validates admin or franchise owner role
 func AdminOrFranchiseAuthMiddleware() gin.HandlerFunc {
 	return RoleAuthMiddleware("admin", "franchise_owner")
 }
 
-// AdminOrServiceAgentAuthMiddleware validates admin or service agent role
 func AdminOrServiceAgentAuthMiddleware() gin.HandlerFunc {
 	return RoleAuthMiddleware("admin", "service_agent")
 }

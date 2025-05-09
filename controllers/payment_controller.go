@@ -506,9 +506,35 @@ func GetPaymentHistory(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("userID")
-	userIDInt := userID.(int64)
-	userIDUint := uint(userIDInt)
+	roleStr, ok := role.(string)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid role in context"})
+		return
+	}
+
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context"})
+		return
+	}
+
+	fmt.Println("🔍 Context role:", roleStr)
+	fmt.Println("🔍 Context userID:", userID)
+
+	var userIDUint uint
+	switch v := userID.(type) {
+	case float64:
+		userIDUint = uint(v)
+	case int:
+		userIDUint = uint(v)
+	case int64:
+		userIDUint = uint(v)
+	case uint:
+		userIDUint = v
+	default:
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID in context"})
+		return
+	}
 
 	type PaymentHistoryItem struct {
 		ID             uint          `json:"id"`
@@ -529,9 +555,8 @@ func GetPaymentHistory(c *gin.Context) {
 	var payments []PaymentHistoryItem
 	var result *gorm.DB
 
-	switch role {
+	switch roleStr {
 	case "admin":
-		// Admin can see all payments
 		result = database.DB.Model(&database.Payment{}).
 			Select("payments.*, users.name as customer_name").
 			Joins("JOIN users ON payments.customer_id = users.id").
@@ -540,7 +565,6 @@ func GetPaymentHistory(c *gin.Context) {
 			Scan(&payments)
 
 	case "franchise_owner":
-		// Franchise owner can only see payments for orders/subscriptions in their franchise
 		result = database.DB.Model(&database.Payment{}).
 			Select("payments.*, users.name as customer_name").
 			Joins("JOIN users ON payments.customer_id = users.id").
@@ -554,7 +578,6 @@ func GetPaymentHistory(c *gin.Context) {
 			Scan(&payments)
 
 	case "customer":
-		// Customer can only see their own payments
 		result = database.DB.Model(&database.Payment{}).
 			Select("payments.*, users.name as customer_name").
 			Joins("JOIN users ON payments.customer_id = users.id").
@@ -575,7 +598,6 @@ func GetPaymentHistory(c *gin.Context) {
 
 	c.JSON(http.StatusOK, payments)
 }
-
 // GetPaymentByID gets a payment by ID
 func GetPaymentByID(c *gin.Context) {
 	paymentIDStr := c.Param("id")

@@ -32,14 +32,26 @@ func CreateOrder(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("userID")
-	customerID := userID.(int64)
+	userIDInterface, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found"})
+		return
+	}
+
+	userIDUint, ok := userIDInterface.(uint)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID type"})
+		return
+	}
+	customerID := uint64(userIDUint) // ✅ Use this below for storing order
 
 	var orderRequest OrderRequest
 	if err := c.ShouldBindJSON(&orderRequest); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
 		return
 	}
+	fmt.Println("Incoming Product ID:", orderRequest.ProductID)
+	fmt.Println("Incoming Franchise ID:", orderRequest.FranchiseID)
 
 	// Get product details
 	var product database.Product
@@ -197,7 +209,7 @@ func GetCustomerOrders(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
+	userID, _ := c.Get("userID")
 	fmt.Printf("userID: %+v\n", userID)
 
 	var customerID uint
@@ -210,16 +222,26 @@ func GetCustomerOrders(c *gin.Context) {
 	}
 
 	type OrderWithProduct struct {
-		database.Order
-		ProductName  string `json:"product_name"`
-		ProductImage string `json:"product_image"`
+		ID           uint       `json:"id"`
+		Status       string     `json:"status"`
+		CreatedAt    time.Time  `json:"created_at"`
+		TotalAmount  float64    `json:"total_amount"`
+		DeliveryDate *time.Time `json:"delivery_date"`
+		ProductName  string     `json:"product_name"`
+		ProductImage string     `json:"product_image"`
 	}
 
 	var orders []OrderWithProduct
 
 	// Use GORM's joins and select capabilities to get orders with product info
 	result := database.DB.Table("orders").
-		Select("orders.*, products.name as product_name, products.image_url as product_image").
+		Select(`orders.id as id, 
+          orders.status, 
+          orders.created_at, 
+          orders.delivery_date, 
+          orders.total_initial_amount as total_amount, 
+          products.name as product_name, 
+          products.image_url as product_image`).
 		Joins("JOIN products ON orders.product_id = products.id").
 		Where("orders.customer_id = ?", customerID).
 		Order("orders.created_at DESC").
@@ -243,17 +265,14 @@ func GetAllOrders(c *gin.Context) {
 
 	type OrderWithProduct struct {
 		database.Order
-		ProductName  string `json:"product_name"`
-		ProductImage string `json:"product_image"`
+		Product database.Product `json:"product"`
 	}
 
 	var orders []OrderWithProduct
 
-	// Use GORM's joins and select capabilities to get orders with product info
-	result := database.DB.Table("orders").
-		Select("orders.*, products.name as product_name, products.image_url as product_image").
-		Joins("JOIN products ON orders.product_id = products.id").
-		Order("orders.created_at DESC").
+	result := database.DB.
+		Preload("Product").
+		Order("created_at DESC").
 		Find(&orders)
 
 	if result.Error != nil {
@@ -558,6 +577,48 @@ func UpdateOrderStatus(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Order status updated successfully"})
+}
+
+// AssignOrderRequest represents the payload for assigning a franchise
+type AssignOrderRequest struct {
+	FranchiseID uint `json:"franchise_id" binding:"required"`
+}
+
+// AssignOrderToFranchise allows admin to assign a franchise to an order
+func AssignOrderToFranchise(c *gin.Context) {
+	role, exists := c.Get("role")
+	if !exists || role != "admin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied"})
+		return
+	}
+
+	orderIDStr := c.Param("id")
+	orderID, err := strconv.ParseUint(orderIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid order ID"})
+		return
+	}
+
+	var req AssignOrderRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+		return
+	}
+
+	var order database.Order
+	if err := database.DB.First(&order, orderID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Order not found"})
+		return
+	}
+
+	order.FranchiseID = req.FranchiseID
+
+	if err := database.DB.Save(&order).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to assign franchise"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Franchise assigned", "order": order})
 }
 
 // Helper function to generate an invoice number
