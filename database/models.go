@@ -9,17 +9,17 @@ import (
 // User represents a user in the system
 type User struct {
 	gorm.Model
-	Name         string  `json:"name"`
-	Email        string  `json:"email"`
-	Password     string  `json:"-"`
-	PasswordHash string  `json:"-"`
-	Role         string  `json:"role"`
-	FranchiseID  *uint   `json:"franchise_id"`
-	Phone        string  `json:"phone"`
-	Address      string  `json:"address"`
-	City         string  `json:"city"`
-	State        string  `json:"state"`
-	ZipCode      string  `json:"zip_code"`
+	Name         string `json:"name"`
+	Email        string `json:"email"`
+	Password     string `json:"-"`
+	PasswordHash string `json:"-"`
+	Role         string `json:"role"`
+	FranchiseID  *uint  `json:"franchise_id"`
+	Phone        string `json:"phone"`
+	Address      string `json:"address"`
+	City         string `json:"city"`
+	State        string `json:"state"`
+	ZipCode      string `json:"zip_code"`
 }
 
 // Product represents a water purifier product
@@ -60,48 +60,49 @@ type Franchise struct {
 // Order represents a customer order
 type Order struct {
 	gorm.Model
-	CustomerID         uint       `json:"customer_id"`
-	ProductID          uint       `json:"product_id"`
-	FranchiseID        uint       `json:"franchise_id"`
-	ServiceAgentID     *uint      `json:"service_agent_id"`
-	Status             string     `json:"status"`
-	ShippingAddress    string     `json:"shipping_address"`
-	BillingAddress     string     `json:"billing_address"`
-	RentalStartDate    time.Time  `json:"rental_start_date"`
-	RentalDuration     int        `json:"rental_duration"`
-	MonthlyRent        float64    `json:"monthly_rent"`
-	SecurityDeposit    float64    `json:"security_deposit"`
-	InstallationFee    float64    `json:"installation_fee"`
-	TotalInitialAmount float64    `json:"total_initial_amount"`
-	Notes              string     `json:"notes"`
-	Customer           User       `gorm:"foreignKey:CustomerID" json:"customer"`
-	Product            Product    `gorm:"foreignKey:ProductID" json:"product"`
-	Franchise          Franchise  `gorm:"foreignKey:FranchiseID" json:"franchise"`
-	ServiceAgent       *User      `gorm:"foreignKey:ServiceAgentID" json:"service_agent"`
+	CustomerID         uint      `json:"customer_id"`
+	ProductID          uint      `json:"product_id"`
+	FranchiseID        uint      `json:"franchise_id"`
+	OrderType          string    `json:"order_type"`
+	ServiceAgentID     *uint     `json:"service_agent_id"`
+	Status             string    `json:"status"`
+	ShippingAddress    string    `json:"shipping_address"`
+	BillingAddress     string    `json:"billing_address"`
+	RentalStartDate    time.Time `json:"rental_start_date"`
+	RentalDuration     int       `json:"rental_duration"`
+	MonthlyRent        float64   `json:"monthly_rent"`
+	SecurityDeposit    float64   `json:"security_deposit"`
+	InstallationFee    float64   `json:"installation_fee"`
+	TotalInitialAmount float64   `json:"total_initial_amount"`
+	Notes              string    `json:"notes"`
+	Customer           User      `gorm:"foreignKey:CustomerID" json:"customer"`
+	Product            Product   `gorm:"foreignKey:ProductID" json:"product"`
+	Franchise          Franchise `gorm:"foreignKey:FranchiseID" json:"franchise"`
+	ServiceAgent       *User     `gorm:"foreignKey:ServiceAgentID" json:"service_agent"`
 }
 
 // Subscription represents an active rental subscription
 type Subscription struct {
 	gorm.Model
-	OrderID          uint        `json:"order_id"`
-	CustomerID       uint        `json:"customer_id"`
-	ProductID        uint        `json:"product_id"`
-	FranchiseID      uint        `json:"franchise_id"`
-	ServiceAgentID   *uint       `json:"service_agent_id"`
-	Status           string      `json:"status"`
-	StartDate        time.Time   `json:"start_date"`
-	EndDate          time.Time   `json:"end_date"`
-	NextBillingDate  time.Time   `json:"next_billing_date"`
-	MonthlyRent      float64     `json:"monthly_rent"`
-	LastMaintenance  time.Time   `json:"last_maintenance"`
-	NextMaintenance  time.Time   `json:"next_maintenance"`
-	MaintenanceNotes string      `json:"maintenance_notes"`
-	Notes            string      `json:"notes"`
-	Order            Order       `gorm:"foreignKey:OrderID" json:"order"`
-	Customer         User        `gorm:"foreignKey:CustomerID" json:"customer"`
-	Product          Product     `gorm:"foreignKey:ProductID" json:"product"`
-	Franchise        Franchise   `gorm:"foreignKey:FranchiseID" json:"franchise"`
-	ServiceAgent     *User       `gorm:"foreignKey:ServiceAgentID" json:"service_agent"`
+	OrderID          uint      `json:"order_id"`
+	CustomerID       uint      `json:"customer_id"`
+	ProductID        uint      `json:"product_id"`
+	FranchiseID      uint      `json:"franchise_id"`
+	ServiceAgentID   *uint     `json:"service_agent_id"`
+	Status           string    `json:"status"`
+	StartDate        time.Time `json:"start_date"`
+	EndDate          time.Time `json:"end_date"`
+	NextBillingDate  time.Time `json:"next_billing_date"`
+	MonthlyRent      float64   `json:"monthly_rent"`
+	LastMaintenance  time.Time `json:"last_maintenance"`
+	NextMaintenance  time.Time `json:"next_maintenance"`
+	MaintenanceNotes string    `json:"maintenance_notes"`
+	Notes            string    `json:"notes"`
+	Order            Order     `gorm:"foreignKey:OrderID" json:"order"`
+	Customer         User      `gorm:"foreignKey:CustomerID" json:"customer"`
+	Product          Product   `gorm:"foreignKey:ProductID" json:"product"`
+	Franchise        Franchise `gorm:"foreignKey:FranchiseID" json:"franchise"`
+	ServiceAgent     *User     `gorm:"foreignKey:ServiceAgentID" json:"service_agent"`
 }
 
 // Payment represents a payment made in the system
@@ -145,14 +146,14 @@ type ServiceRequest struct {
 // Notification represents a system notification
 type Notification struct {
 	gorm.Model
-	UserID      uint    `json:"user_id"`
-	Title       string  `json:"title"`
-	Message     string  `json:"message"`
-	Type        string  `json:"type"`
-	RelatedID   *uint   `json:"related_id"`
-	RelatedType string  `json:"related_type"`
-	IsRead      bool    `json:"is_read"`
-	User        User    `gorm:"foreignKey:UserID" json:"user"`
+	UserID      uint   `json:"user_id"`
+	Title       string `json:"title"`
+	Message     string `json:"message"`
+	Type        string `json:"type"`
+	RelatedID   *uint  `json:"related_id"`
+	RelatedType string `json:"related_type"`
+	IsRead      bool   `json:"is_read"`
+	User        User   `gorm:"foreignKey:UserID" json:"user"`
 }
 
 // PasswordReset represents a password reset request
@@ -167,15 +168,15 @@ type PasswordReset struct {
 // Audit represents a system audit log entry
 type Audit struct {
 	gorm.Model
-	UserID     *uint     `json:"user_id"`
-	Action     string    `json:"action"`
-	EntityType string    `json:"entity_type"`
-	EntityID   uint      `json:"entity_id"`
-	OldValue   string    `json:"old_value"`
-	NewValue   string    `json:"new_value"`
-	IPAddress  string    `json:"ip_address"`
-	UserAgent  string    `json:"user_agent"`
-	User       *User     `gorm:"foreignKey:UserID" json:"user"`
+	UserID     *uint  `json:"user_id"`
+	Action     string `json:"action"`
+	EntityType string `json:"entity_type"`
+	EntityID   uint   `json:"entity_id"`
+	OldValue   string `json:"old_value"`
+	NewValue   string `json:"new_value"`
+	IPAddress  string `json:"ip_address"`
+	UserAgent  string `json:"user_agent"`
+	User       *User  `gorm:"foreignKey:UserID" json:"user"`
 }
 
 // Constants for status values

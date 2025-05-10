@@ -109,6 +109,7 @@ func CreateOrder(c *gin.Context) {
 		CustomerID:         uint(customerID),
 		ProductID:          uint(orderRequest.ProductID),
 		FranchiseID:        franchiseIDUint,
+		OrderType:          "rental",
 		Status:             database.OrderStatusPending,
 		ShippingAddress:    orderRequest.ShippingAddress,
 		BillingAddress:     orderRequest.BillingAddress,
@@ -263,25 +264,38 @@ func GetAllOrders(c *gin.Context) {
 		return
 	}
 
-	type OrderWithProduct struct {
-		database.Order
-		Product database.Product `json:"product"`
-	}
-
-	var orders []OrderWithProduct
-
-	result := database.DB.
-		Preload("Product").
-		Order("created_at DESC").
-		Find(&orders)
-
-	if result.Error != nil {
-		log.Printf("Database error: %v", result.Error)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Server error"})
+	var orders []database.Order
+	if err := database.DB.Preload("Product").Order("created_at DESC").Find(&orders).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch orders"})
 		return
 	}
 
-	c.JSON(http.StatusOK, orders)
+	type AdminOrderResponse struct {
+		ID              uint             `json:"id"`
+		Status          string           `json:"status"`
+		OrderType       string           `json:"order_type"`
+		FranchiseID     uint             `json:"franchise_id"`
+		ShippingAddress string           `json:"shipping_address"`
+		CreatedAt       time.Time        `json:"created_at"`
+		TotalAmount     float64          `json:"total_amount"`
+		Product         database.Product `json:"product"`
+	}
+
+	var response []AdminOrderResponse
+	for _, o := range orders {
+		response = append(response, AdminOrderResponse{
+			ID:              o.ID,
+			Status:          o.Status,
+			OrderType:       o.OrderType,
+			FranchiseID:     o.FranchiseID,
+			ShippingAddress: o.ShippingAddress,
+			CreatedAt:       o.CreatedAt,
+			TotalAmount:     o.TotalInitialAmount,
+			Product:         o.Product,
+		})
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // GetOrderByID gets an order by ID

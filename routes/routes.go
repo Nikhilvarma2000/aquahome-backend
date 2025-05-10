@@ -61,6 +61,7 @@ func SetupRoutes(r *gin.Engine) {
 			admin.PATCH("/franchises/:id", controllers.AdminUpdateFranchise)
 			admin.POST("/franchises", controllers.CreateFranchise)
 			admin.PATCH("/orders/:id/assign", controllers.AssignOrderToFranchise)
+			admin.GET("/customers/:id/subscriptions", controllers.GetCustomerSubscriptions)
 
 			//  this route for fetching all franchises
 			admin.GET("/franchises", controllers.GetAllFranchises)
@@ -82,6 +83,7 @@ func SetupRoutes(r *gin.Engine) {
 			subscriptions.GET("/customer", middleware.CustomerAuthMiddleware(), controllers.GetCustomerSubscriptions)
 			subscriptions.PUT("/:id", middleware.CustomerAuthMiddleware(), controllers.UpdateSubscription)
 			subscriptions.POST("/:id/cancel", middleware.CustomerAuthMiddleware(), controllers.CancelSubscription)
+
 		}
 
 		// Service requests
