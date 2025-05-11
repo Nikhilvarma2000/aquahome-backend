@@ -71,6 +71,7 @@ type Order struct {
 	RentalStartDate    time.Time `json:"rental_start_date"`
 	RentalDuration     int       `json:"rental_duration"`
 	MonthlyRent        float64   `json:"monthly_rent"`
+	DeliveryDate       time.Time `json:"delivery_date"`
 	SecurityDeposit    float64   `json:"security_deposit"`
 	InstallationFee    float64   `json:"installation_fee"`
 	TotalInitialAmount float64   `json:"total_initial_amount"`

@@ -310,7 +310,15 @@ func GetOrderByID(c *gin.Context) {
 	// Get user role and ID
 	role, _ := c.Get("role")
 	userID, _ := c.Get("userID")
-	userIDInt := userID.(int64)
+	var userIDInt uint
+
+	if id, ok := userID.(uint); ok {
+		userIDInt = id
+	} else {
+		log.Printf("Failed to convert user_id to uint: %v", userID)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID"})
+		return
+	}
 
 	// Define order detail struct with joined fields
 	type OrderDetail struct {
@@ -353,6 +361,7 @@ func GetOrderByID(c *gin.Context) {
 
 	// Execute the query
 	result := query.First(&orderDetail)
+	fmt.Println("Result:", result, "\nOrder Detail:", orderDetail)
 	err = result.Error
 
 	if err != nil {
