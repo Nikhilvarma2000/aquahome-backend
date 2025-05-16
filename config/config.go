@@ -47,8 +47,8 @@ func InitConfig() {
 		JWTSecret:      getEnv("JWT_SECRET", "aquahome_default_secret_key"),
 		JWTExpiryHours: getEnvAsInt("JWT_EXPIRY_HOURS", 24),
 		Environment:    getEnv("ENVIRONMENT", "development"),
-		RazorpayKey:    getEnv("RAZORPAY_KEY", ""),
-		RazorpaySecret: getEnv("RAZORPAY_SECRET", ""),
+		RazorpayKey:    getEnv("RAZORPAY_KEY", "rzp_test_QfMQ0LRiTplCvR"),
+		RazorpaySecret: getEnv("RAZORPAY_SECRET", "169NdofVMND0u1o8yTWsgx47"),
 	}
 }
 

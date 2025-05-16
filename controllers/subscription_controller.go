@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -103,6 +104,8 @@ type SubscriptionUpdateRequest struct {
 
 func GetAllSubscriptions(c *gin.Context) {
 	role := c.GetString("role")
+	fmt.Println("🔥 Token lo vachina role:", role)
+
 	if role != database.RoleAdmin {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied"})
 		return
@@ -173,7 +176,6 @@ func GetCustomerSubscriptions(c *gin.Context) {
 	}
 
 	userID, _ := c.Get("userID")
-
 
 	// Convert userID to uint
 	var customerID uint
@@ -774,6 +776,7 @@ func CancelSubscription(c *gin.Context) {
 		"message": "Subscription cancelled successfully",
 	})
 }
+
 // CreateSubscription creates a new subscription (Customer only)
 func CreateSubscription(c *gin.Context) {
 	userID, exists := c.Get("userID")
@@ -788,7 +791,7 @@ func CreateSubscription(c *gin.Context) {
 		return
 	}
 
-subscription.CustomerID = userID.(uint)
+	subscription.CustomerID = userID.(uint)
 	if err := database.DB.Create(&subscription).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create subscription"})
 		return
@@ -813,5 +816,3 @@ func DeleteSubscription(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Subscription deleted successfully"})
 }
-
-

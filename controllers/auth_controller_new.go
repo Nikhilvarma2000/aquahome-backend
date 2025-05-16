@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -59,7 +60,8 @@ func LoginNew(c *gin.Context) {
 
 	// Generate JWT token
 	expiryTime := time.Now().Add(24 * time.Hour)
-	token, err := utils.GenerateJWT(user.ID, user.Email, user.Role, expiryTime)
+	token, err := utils.GenerateJWT(user.ID, user.Email, strings.ToLower(user.Role), expiryTime)
+
 	if err != nil {
 		log.Printf("JWT error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
@@ -154,11 +156,11 @@ func RegisterNew(c *gin.Context) {
 
 	// Create a welcome notification
 	notification := database.Notification{
-		UserID:    user.ID,
-		Title:     "Welcome to AquaHome",
-		Message:   "Thank you for registering with AquaHome! We're excited to have you with us.",
-		Type:      "welcome",
-		IsRead:    false,
+		UserID:  user.ID,
+		Title:   "Welcome to AquaHome",
+		Message: "Thank you for registering with AquaHome! We're excited to have you with us.",
+		Type:    "welcome",
+		IsRead:  false,
 		//CreatedAt: time.Now(),
 		//UpdatedAt: time.Now(),
 	}
@@ -179,7 +181,8 @@ func RegisterNew(c *gin.Context) {
 
 	// Generate token for the new user
 	expiryTime := time.Now().Add(24 * time.Hour)
-	token, err := utils.GenerateJWT(user.ID, user.Email, user.Role, expiryTime)
+	token, err := utils.GenerateJWT(user.ID, user.Email, strings.ToLower(user.Role), expiryTime)
+
 	if err != nil {
 		log.Printf("JWT error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "User created but failed to generate token"})

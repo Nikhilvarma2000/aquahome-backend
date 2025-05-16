@@ -1,6 +1,9 @@
 package controllers
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -44,7 +47,21 @@ func GeneratePaymentOrder(c *gin.Context) {
 	}
 
 	userID, _ := c.Get("userID")
-	customerID := userID.(int64)
+	var customerID uint
+
+	switch v := userID.(type) {
+	case uint:
+		customerID = v
+	case int:
+		customerID = uint(v)
+	case int64:
+		customerID = uint(v)
+	case float64:
+		customerID = uint(v)
+	default:
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID format"})
+		return
+	}
 
 	var request RazorpayOrderRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
@@ -133,7 +150,20 @@ func VerifyPayment(c *gin.Context) {
 	}
 
 	userID, _ := c.Get("userID")
-	customerID := userID.(int64)
+	var customerID uint
+	switch v := userID.(type) {
+	case float64:
+		customerID = uint(v)
+	case int:
+		customerID = uint(v)
+	case int64:
+		customerID = uint(v)
+	case uint:
+		customerID = v
+	default:
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID format"})
+		return
+	}
 
 	var request PaymentVerificationRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
@@ -381,7 +411,20 @@ func GenerateMonthlyPayment(c *gin.Context) {
 	}
 
 	userID, _ := c.Get("userID")
-	customerID := userID.(int64)
+	var customerID uint
+	switch v := userID.(type) {
+	case uint:
+		customerID = v
+	case int:
+		customerID = uint(v)
+	case int64:
+		customerID = uint(v)
+	case float64:
+		customerID = uint(v)
+	default:
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID format"})
+		return
+	}
 
 	var request MonthlyPaymentRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
@@ -598,6 +641,7 @@ func GetPaymentHistory(c *gin.Context) {
 
 	c.JSON(http.StatusOK, payments)
 }
+
 // GetPaymentByID gets a payment by ID
 func GetPaymentByID(c *gin.Context) {
 	paymentIDStr := c.Param("id")
@@ -615,8 +659,21 @@ func GetPaymentByID(c *gin.Context) {
 	}
 
 	userID, _ := c.Get("userID")
-	userIDInt := userID.(int64)
-	userIDUint := uint(userIDInt)
+
+	var userIDUint uint
+	switch v := userID.(type) {
+	case float64:
+		userIDUint = uint(v)
+	case int:
+		userIDUint = uint(v)
+	case int64:
+		userIDUint = uint(v)
+	case uint:
+		userIDUint = v
+	default:
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID in context"})
+		return
+	}
 
 	type PaymentDetail struct {
 		ID             uint          `json:"id"`
@@ -697,10 +754,9 @@ func generateMonthlyInvoiceNumber(subscriptionID uint) string {
 	timestamp := time.Now().Format("20060102") // YYYYMMDD format
 	return "INV-M-" + timestamp + "-" + strconv.FormatUint(uint64(subscriptionID), 10)
 }
-
-// Helper function to verify Razorpay signature
 func verifyRazorpaySignature(data, signature, secret string) bool {
-	// In a real implementation, this would properly verify the signature
-	// For now, we'll assume the signature is valid
-	return true
+	h := hmac.New(sha256.New, []byte(secret))
+	h.Write([]byte(data))
+	expectedSignature := hex.EncodeToString(h.Sum(nil))
+	return expectedSignature == signature
 }

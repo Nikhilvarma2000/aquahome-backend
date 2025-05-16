@@ -92,9 +92,9 @@ func SetupRoutes(r *gin.Engine) {
 			services.POST("", middleware.CustomerAuthMiddleware(), controllers.CreateServiceRequest)
 			services.POST("/:id/feedback", middleware.CustomerAuthMiddleware(), controllers.SubmitServiceFeedback)
 			services.POST("/:id/cancel", middleware.CustomerAuthMiddleware(), controllers.CancelServiceRequest)
-			services.GET("", controllers.GetServiceRequests)
-			services.GET("/:id", controllers.GetServiceRequestByID)
-			services.PUT("/:id", controllers.UpdateServiceRequest)
+			services.GET("", controllers.GetServiceRequestsNew)
+			services.GET("/:id", controllers.GetServiceRequestByIDNew)
+			services.PUT("/:id", controllers.UpdateServiceRequestNew)
 		}
 
 		// Franchises
