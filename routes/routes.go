@@ -79,6 +79,7 @@ func SetupRoutes(r *gin.Engine) {
 		orders := protected.Group("/orders")
 		{
 			orders.POST("", middleware.CustomerAuthMiddleware(), controllers.CreateOrder)
+			orders.POST(":id/cancel", middleware.CustomerAuthMiddleware(), controllers.CancelOrder)
 			orders.GET("/customer", middleware.CustomerAuthMiddleware(), controllers.GetCustomerOrders)
 			orders.PUT("/:id/status", middleware.AdminOrFranchiseAuthMiddleware(), controllers.UpdateOrderStatus)
 			orders.GET("/:id", controllers.GetOrderByID)

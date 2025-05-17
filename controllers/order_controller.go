@@ -202,6 +202,50 @@ func CreateOrder(c *gin.Context) {
 	})
 }
 
+func CancelOrder(c *gin.Context) {
+	role, exists := c.Get("role")
+	fmt.Println("C:", c)
+	fmt.Println("Role:", role)
+	if !exists || role != "customer" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied"})
+		return
+	}
+
+	orderIDStr := c.Param("id")
+	orderID, err := strconv.ParseInt(orderIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid order ID"})
+		return
+	}
+
+	var order database.Order
+	if err := database.DB.First(&order, orderID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Order not found"})
+			return
+		}
+		log.Printf("Database error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Server error"})
+		return
+	}
+
+	userID, exists := c.Get("userID")
+	if exists && order.CustomerID != userID.(uint) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission to cancel this order"})
+		return
+	}
+
+	order.Status = database.OrderStatusCancelled
+
+	if err := database.DB.Save(&order).Error; err != nil {
+		log.Printf("Database error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to cancel order"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Order cancelled successfully"})
+}
+
 // GetCustomerOrders gets orders for the authenticated customer
 func GetCustomerOrders(c *gin.Context) {
 	role, exists := c.Get("role")
