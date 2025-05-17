@@ -44,7 +44,10 @@ type ServiceRequestWithDetails struct {
 
 // GetServiceRequests returns service requests based on user role
 func GetServiceRequestsNew(c *gin.Context) {
+	log.Println("🔍 CONTEXT KEYS:", c.Keys)
+
 	userIDValue, exists := c.Get("user_id")
+
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -146,6 +149,7 @@ func GetServiceRequestByIDNew(c *gin.Context) {
 	}
 
 	userIDValue, exists := c.Get("user_id")
+
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -259,6 +263,7 @@ func CreateServiceRequestNew(c *gin.Context) {
 	}
 
 	userIDValue, exists := c.Get("user_id")
+
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -383,6 +388,7 @@ func UpdateServiceRequestNew(c *gin.Context) {
 	}
 
 	userIDValue, exists := c.Get("user_id")
+
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -683,6 +689,7 @@ func CancelServiceRequestNew(c *gin.Context) {
 	}
 
 	userIDValue, exists := c.Get("user_id")
+
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -797,6 +804,7 @@ func SubmitServiceFeedbackNew(c *gin.Context) {
 	}
 
 	userIDValue, exists := c.Get("user_id")
+
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -874,4 +882,5 @@ func SubmitServiceFeedbackNew(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Feedback submitted successfully",
 	})
+
 }

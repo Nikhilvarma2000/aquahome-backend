@@ -53,7 +53,7 @@ func CreateFranchise(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("userID")
+	userID, _ := c.Get("user_id")
 	ownerID := uint(userID.(float64)) // Convert to uint for GORM
 
 	var franchiseRequest FranchiseRequest
@@ -185,7 +185,7 @@ func GetFranchises(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("userID")
+	userID, _ := c.Get("user_id")
 	var userIDUint uint
 
 	if role != "admin" {
@@ -264,7 +264,7 @@ func PublicGetFranchiseByID(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("userID")
+	userID, _ := c.Get("user_id")
 	userIDUint := uint(userID.(float64))
 
 	// Define response structure using FranchiseWithOwner and adding missing fields
@@ -355,7 +355,7 @@ func UpdateFranchise(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("userID")
+	userID, _ := c.Get("user_id")
 	userIDUint := uint(userID.(float64))
 
 	// Find franchise to check existence and ownership
@@ -644,7 +644,7 @@ func GetFranchiseServiceAgents(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("userID")
+	userID, _ := c.Get("user_id")
 	userIDUint := uint(userID.(float64))
 
 	// If franchise owner, check if they own the franchise

@@ -61,10 +61,18 @@ func SetupRoutes(r *gin.Engine) {
 			admin.PATCH("/franchises/:id", controllers.AdminUpdateFranchise)
 			admin.POST("/franchises", controllers.CreateFranchise)
 			admin.PATCH("/orders/:id/assign", controllers.AssignOrderToFranchise)
-			admin.GET("/customers/:id/subscriptions", controllers.GetCustomerSubscriptions)
+			admin.GET("/customers/:id/subscriptions", controllers.GetCustomerSubscriptionsByAdmin)
 
 			//  this route for fetching all franchises
 			admin.GET("/franchises", controllers.GetAllFranchises)
+		}
+
+		// 🧑‍🔧 Service Agent Routes
+		agent := protected.Group("/agent")
+		agent.Use(middleware.ServiceAgentAuthMiddleware())
+		{
+			agent.GET("/tasks", controllers.GetAgentTasks)
+			agent.GET("/dashboard", controllers.GetServiceAgentDashboard)
 		}
 
 		// Orders
@@ -80,9 +88,11 @@ func SetupRoutes(r *gin.Engine) {
 		subscriptions := protected.Group("/subscriptions")
 		{
 			subscriptions.POST("", middleware.CustomerAuthMiddleware(), controllers.CreateSubscription)
-			subscriptions.GET("/customer", middleware.CustomerAuthMiddleware(), controllers.GetCustomerSubscriptions)
+			subscriptions.GET("/customer", middleware.CustomerAuthMiddleware(), controllers.GetMySubscriptions)
 			subscriptions.PUT("/:id", middleware.CustomerAuthMiddleware(), controllers.UpdateSubscription)
 			subscriptions.POST("/:id/cancel", middleware.CustomerAuthMiddleware(), controllers.CancelSubscription)
+
+			subscriptions.GET("/franchise", middleware.FranchiseOwnerAuthMiddleware(), controllers.GetFranchiseSubscriptions)
 
 		}
 
@@ -96,6 +106,7 @@ func SetupRoutes(r *gin.Engine) {
 			services.GET("/:id", controllers.GetServiceRequestByIDNew)
 			services.PUT("/:id", controllers.UpdateServiceRequestNew)
 		}
+		// Service agents
 
 		// Franchises
 		franchises := protected.Group("/franchises")

@@ -46,7 +46,7 @@ func GeneratePaymentOrder(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("userID")
+	userID, _ := c.Get("user_id")
 	var customerID uint
 
 	switch v := userID.(type) {
@@ -149,7 +149,8 @@ func VerifyPayment(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("userID")
+	userID, _ := c.Get("user_id")
+
 	var customerID uint
 	switch v := userID.(type) {
 	case float64:
@@ -410,7 +411,7 @@ func GenerateMonthlyPayment(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("userID")
+	userID, _ := c.Get("user_id")
 	var customerID uint
 	switch v := userID.(type) {
 	case uint:
@@ -555,7 +556,7 @@ func GetPaymentHistory(c *gin.Context) {
 		return
 	}
 
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context"})
 		return
@@ -658,7 +659,7 @@ func GetPaymentByID(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("userID")
+	userID, _ := c.Get("user_id")
 
 	var userIDUint uint
 	switch v := userID.(type) {

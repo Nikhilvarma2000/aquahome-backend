@@ -168,14 +168,14 @@ func GetAllSubscriptions(c *gin.Context) {
 }
 
 // GetCustomerSubscriptions gets subscriptions for the authenticated customer
-func GetCustomerSubscriptions(c *gin.Context) {
+func GetMySubscriptions(c *gin.Context) {
 	role := c.GetString("role")
 	if role != database.RoleCustomer {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied"})
 		return
 	}
 
-	userID, _ := c.Get("userID")
+	userID, _ := c.Get("user_id")
 
 	// Convert userID to uint
 	var customerID uint
@@ -441,11 +441,17 @@ func GetFranchiseSubscriptions(c *gin.Context) {
 		return
 	}
 
-	userID := c.GetString("user_id")
-	userIDUint, err := strconv.ParseUint(userID, 10, 64)
-	if err != nil {
-		log.Printf("Invalid user ID: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		log.Println("user_id not found in context")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User ID missing"})
+		return
+	}
+
+	userID, ok := userIDVal.(uint)
+	if !ok {
+		log.Println("user_id is not of type uint")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID format"})
 		return
 	}
 
@@ -477,10 +483,11 @@ func GetFranchiseSubscriptions(c *gin.Context) {
 	if role == database.RoleFranchiseOwner {
 		// Franchise owner can only see subscriptions for their franchise
 		query = query.Joins("JOIN franchises ON subscriptions.franchise_id = franchises.id").
-			Where("franchises.owner_id = ?", userIDUint)
+			Where("franchises.owner_id = ?", userID)
+
 	}
 
-	err = query.
+	err := query.
 		Order("subscriptions.created_at DESC").
 		Find(&subscriptions).Error
 
@@ -779,7 +786,7 @@ func CancelSubscription(c *gin.Context) {
 
 // CreateSubscription creates a new subscription (Customer only)
 func CreateSubscription(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
@@ -815,4 +822,53 @@ func DeleteSubscription(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Subscription deleted successfully"})
+}
+func GetCustomerSubscriptionsByAdmin(c *gin.Context) {
+	if c.GetString("role") != database.RoleAdmin {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		return
+	}
+
+	customerIDParam := c.Param("id")
+	customerID, err := strconv.ParseUint(customerIDParam, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid customer ID"})
+		return
+	}
+
+	var subscriptions []SubscriptionWithProduct
+
+	err = database.DB.Table("subscriptions").
+		Select(`
+			subscriptions.id, 
+			subscriptions.order_id, 
+			subscriptions.customer_id, 
+			subscriptions.product_id, 
+			subscriptions.franchise_id, 
+			subscriptions.status, 
+			subscriptions.start_date, 
+			subscriptions.end_date, 
+			subscriptions.next_billing_date, 
+			subscriptions.monthly_rent,
+			subscriptions.created_at, 
+			subscriptions.updated_at,
+			products.name as product_name, 
+			products.image_url as product_image,
+			franchises.name as franchise_name,
+			CASE WHEN subscriptions.status = ? THEN true ELSE false END as is_active,
+			subscriptions.next_maintenance as next_service
+		`, database.SubscriptionStatusActive).
+		Joins("JOIN products ON subscriptions.product_id = products.id").
+		Joins("LEFT JOIN franchises ON subscriptions.franchise_id = franchises.id").
+		Where("subscriptions.customer_id = ?", customerID).
+		Order("subscriptions.created_at DESC").
+		Find(&subscriptions).Error
+
+	if err != nil {
+		log.Printf("Error fetching customer subscriptions: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch subscriptions"})
+		return
+	}
+
+	c.JSON(http.StatusOK, subscriptions)
 }

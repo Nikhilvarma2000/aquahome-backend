@@ -202,7 +202,7 @@ func RegisterNew(c *gin.Context) {
 
 // RefreshTokenNew generates a new token for a logged in user using GORM
 func RefreshTokenNew(c *gin.Context) {
-	userID, _ := c.Get("userID")
+	userID, _ := c.Get("user_id")
 	email, _ := c.Get("email")
 	role, _ := c.Get("role")
 

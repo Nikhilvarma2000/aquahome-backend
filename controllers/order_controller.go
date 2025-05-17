@@ -32,7 +32,7 @@ func CreateOrder(c *gin.Context) {
 		return
 	}
 
-	userIDInterface, exists := c.Get("userID")
+	userIDInterface, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found"})
 		return
@@ -210,7 +210,7 @@ func GetCustomerOrders(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("userID")
+	userID, _ := c.Get("user_id")
 	fmt.Printf("userID: %+v\n", userID)
 
 	var customerID uint
@@ -309,7 +309,8 @@ func GetOrderByID(c *gin.Context) {
 
 	// Get user role and ID
 	role, _ := c.Get("role")
-	userID, _ := c.Get("userID")
+	userID, _ := c.Get("user_id")
+
 	var userIDInt uint
 
 	if id, ok := userID.(uint); ok {
@@ -434,7 +435,7 @@ func UpdateOrderStatus(c *gin.Context) {
 
 	// If franchise owner, check if they own the franchise
 	if role == "franchise_owner" {
-		userID, _ := c.Get("userID")
+		userID, _ := c.Get("user_id")
 		var franchise database.Franchise
 		err = database.DB.Where("id = ?", franchiseID).
 			Select("owner_id").

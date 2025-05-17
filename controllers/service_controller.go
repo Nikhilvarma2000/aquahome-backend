@@ -39,17 +39,18 @@ type FeedbackRequest struct {
 // GetServiceRequests returns service requests based on user role
 // GetServiceRequests returns service requests based on user role
 func GetServiceRequests(c *gin.Context) {
-	userIDRaw, exists := c.Get("userID")
-    if !exists {
-    	c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
-    	return
-    }
+	userIDRaw, exists := c.Get("user_id")
 
-    userID, ok := userIDRaw.(uint)
-    if !ok {
-    	c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID format"})
-    	return
-    }
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	userID, ok := userIDRaw.(uint)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID format"})
+		return
+	}
 	userIDInt := uint64(userID)
 	role := c.GetString("role")
 
@@ -963,4 +964,99 @@ func SubmitServiceFeedback(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Feedback submitted successfully",
 	})
+}
+
+// GetServiceAgentDashboard returns basic stats for a service agent
+func GetServiceAgentDashboard(c *gin.Context) {
+	agentIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	agentID, ok := agentIDVal.(uint)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID format"})
+		return
+	}
+
+	var totalTasks int64
+	var completedTasks int64
+	var pendingTasks int64
+
+	database.DB.Model(&database.ServiceRequest{}).
+		Where("service_agent_id = ?", agentID).
+		Count(&totalTasks)
+
+	database.DB.Model(&database.ServiceRequest{}).
+		Where("service_agent_id = ? AND status = ?", agentID, database.ServiceStatusCompleted).
+		Count(&completedTasks)
+
+	database.DB.Model(&database.ServiceRequest{}).
+		Where("service_agent_id = ? AND status = ?", agentID, database.ServiceStatusPending).
+		Count(&pendingTasks)
+
+	c.JSON(http.StatusOK, gin.H{
+		"total_tasks":     totalTasks,
+		"completed_tasks": completedTasks,
+		"pending_tasks":   pendingTasks,
+	})
+}
+
+// GetAgentTasks returns all service requests assigned to the logged-in service agent
+func GetAgentTasks(c *gin.Context) {
+	agentIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	agentID, ok := agentIDVal.(uint)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID format"})
+		return
+	}
+
+	var tasks []ServiceRequestWithDetails
+
+	err := database.DB.Table("service_requests").
+		Joins("JOIN users as customer ON service_requests.customer_id = customer.id").
+		Joins("JOIN subscriptions ON service_requests.subscription_id = subscriptions.id").
+		Joins("JOIN products ON subscriptions.product_id = products.id").
+		Joins("LEFT JOIN franchises ON subscriptions.franchise_id = franchises.id").
+		Joins("LEFT JOIN users as service_agent ON service_requests.service_agent_id = service_agent.id").
+		Where("service_requests.service_agent_id = ?", agentID).
+		Select(`
+			service_requests.id,
+			service_requests.type,
+			service_requests.status,
+			service_requests.description,
+			service_requests.scheduled_time,
+			service_requests.completion_time,
+			service_requests.rating,
+			service_requests.feedback,
+			service_requests.created_at,
+			service_requests.updated_at,
+			service_requests.customer_id,
+			customer.name as customer_name,
+			customer.email as customer_email,
+			customer.phone as customer_phone,
+			subscriptions.product_id,
+			products.name as product_name,
+			service_requests.subscription_id,
+			franchises.id as franchise_id,
+			franchises.name as franchise_name,
+			service_requests.service_agent_id,
+			service_agent.name as service_agent_name
+		`).
+		Order("service_requests.created_at DESC").
+		Find(&tasks).Error
+
+	if err != nil {
+		log.Printf("DB error fetching agent tasks: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tasks"})
+		return
+	}
+
+	c.JSON(http.StatusOK, tasks)
 }

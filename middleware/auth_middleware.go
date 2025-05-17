@@ -35,7 +35,8 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		// ✅ Directly use UserID, already uint
-		c.Set("userID", claims.UserID)
+		c.Set("userID", claims.UserID)  // camelCase (used in new code)
+		c.Set("user_id", claims.UserID) // snake_case (used in old code)
 		c.Set("email", claims.Email)
 		c.Set("role", claims.Role)
 

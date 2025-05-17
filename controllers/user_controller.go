@@ -14,7 +14,7 @@ import (
 
 // GetUserProfile returns the profile of the authenticated user
 func GetUserProfile(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -49,7 +49,7 @@ type UpdateProfileRequest struct {
 
 // UpdateUserProfile updates the profile of the authenticated user
 func UpdateUserProfile(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -110,7 +110,8 @@ type ChangePasswordRequest struct {
 
 // ChangePassword changes the user's password
 func ChangePassword(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
+
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
