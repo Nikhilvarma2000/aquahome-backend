@@ -29,7 +29,7 @@ func InitLegacyDB() error {
 			connStr = dbURL
 			log.Println("Using DATABASE_URL for PostgreSQL legacy DB")
 		} else {
-			connStr = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+			connStr = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=require",
 				config.AppConfig.DBHost,
 				config.AppConfig.DBPort,
 				config.AppConfig.DBUser,
