@@ -22,7 +22,7 @@ func InitDB() error {
 
 	if config.AppConfig.DBDriver == "postgres" {
 		dsn := fmt.Sprintf(
-			"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable TimeZone=UTC",
+			"host=%s port=%s user=%s password=%s dbname=%s sslmode=require TimeZone=UTC",
 			config.AppConfig.DBHost,
 			config.AppConfig.DBPort,
 			config.AppConfig.DBUser,
