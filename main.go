@@ -14,35 +14,29 @@ import (
 )
 
 func main() {
-	// Load environment variables
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, using environment variables")
-	}
-
-	// Set PostgreSQL environment variables if available
-	if os.Getenv("PGHOST") != "" {
-		os.Setenv("DB_HOST", os.Getenv("PGHOST"))
-	}
-	if os.Getenv("PGPORT") != "" {
-		os.Setenv("DB_PORT", os.Getenv("PGPORT"))
-	}
-	if os.Getenv("PGUSER") != "" {
-		os.Setenv("DB_USER", os.Getenv("PGUSER"))
-	}
-	if os.Getenv("PGPASSWORD") != "" {
-		os.Setenv("DB_PASSWORD", os.Getenv("PGPASSWORD"))
-	}
-	if os.Getenv("PGDATABASE") != "" {
-		os.Setenv("DB_NAME", os.Getenv("PGDATABASE"))
-	}
+	// Load environment variables (optional for local dev)
+	_ = godotenv.Load()
 
 	// Initialize config
 	config.InitConfig()
 
+	// Initialize DBs
+	if err := database.InitDB(); err != nil {
+		log.Fatalf("❌ Failed to initialize GORM database: %v", err)
+	}
+	if err := database.InitLegacyDB(); err != nil {
+		log.Fatalf("❌ Failed to initialize legacy database: %v", err)
+	}
+
+	// Run migrations
+	if err := database.RunMigrations(); err != nil {
+		log.Fatalf("❌ Failed to run migrations: %v", err)
+	}
+
 	// Setup router
 	r := gin.Default()
 
-	// CORS settings
+	// Enable CORS
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
@@ -51,29 +45,16 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	// Initialize DBs
-	if err := database.InitDB(); err != nil {
-		log.Fatalf("Failed to initialize GORM database: %v", err)
-	}
-	if err := database.InitLegacyDB(); err != nil {
-		log.Fatalf("Failed to initialize legacy database: %v", err)
-	}
-
-	// Run migrations
-	if err := database.RunMigrations(); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
-	}
-
-	// Setup routes (real AuthMiddleware is applied inside routes)
+	// Register routes
 	routes.SetupRoutes(r)
 
 	// Start server
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "5000"
+		port = "5000" // fallback for local dev
 	}
 	log.Printf("🚀 Server running at http://0.0.0.0:%s", port)
 	if err := r.Run("0.0.0.0:" + port); err != nil {
-		log.Fatalf("Server failed: %v", err)
+		log.Fatalf("❌ Server failed: %v", err)
 	}
 }
