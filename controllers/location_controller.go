@@ -53,7 +53,7 @@ func CreateFranchise(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
+	//userID, _ := c.Get("user_id")
 	ownerIDInterface, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found"})
