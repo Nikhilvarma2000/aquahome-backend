@@ -54,7 +54,18 @@ func CreateFranchise(c *gin.Context) {
 	}
 
 	userID, _ := c.Get("user_id")
-	ownerID := uint(userID.(float64)) // Convert to uint for GORM
+	ownerIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found"})
+		return
+	}
+
+	ownerID, ok := ownerIDInterface.(uint)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID type"})
+		return
+	}
+	// Convert to uint for GORM
 
 	var franchiseRequest FranchiseRequest
 	if err := c.ShouldBindJSON(&franchiseRequest); err != nil {
