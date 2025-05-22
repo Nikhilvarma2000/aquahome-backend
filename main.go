@@ -47,6 +47,9 @@ func main() {
 
 	// Register routes
 	routes.SetupRoutes(r)
+	for _, route := range r.Routes() {
+		log.Printf("🔗 %s %s", route.Method, route.Path)
+	}
 
 	// Start server
 	port := os.Getenv("PORT")

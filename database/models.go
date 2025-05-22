@@ -60,6 +60,7 @@ type Franchise struct {
 // Order represents a customer order
 type Order struct {
 	gorm.Model
+	// ID                 uint      `json:"id"`
 	CustomerID         uint      `json:"customer_id"`
 	ProductID          uint      `json:"product_id"`
 	FranchiseID        uint      `json:"franchise_id"`
@@ -130,6 +131,7 @@ type ServiceRequest struct {
 	gorm.Model
 	CustomerID     uint         `json:"customer_id"`
 	SubscriptionID uint         `json:"subscription_id"`
+	FranchiseID    uint         `json:"franchise_id"` // ✅ ADD THIS LINE
 	ServiceAgentID *uint        `json:"service_agent_id"`
 	Type           string       `json:"type"`
 	Status         string       `json:"status"`

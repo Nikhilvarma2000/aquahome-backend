@@ -174,8 +174,14 @@ func VerifyPayment(c *gin.Context) {
 
 	// Verify payment signature
 	data := request.OrderID + "|" + request.PaymentID
-	isValid := verifyRazorpaySignature(data, request.Signature, config.AppConfig.RazorpaySecret)
-	if !isValid {
+	h := hmac.New(sha256.New, []byte(config.AppConfig.RazorpaySecret))
+	h.Write([]byte(data))
+	expectedSignature := hex.EncodeToString(h.Sum(nil))
+
+	fmt.Println("🔍 Expected Signature:", expectedSignature)
+	fmt.Println("📦 Provided Signature:", request.Signature)
+
+	if expectedSignature != request.Signature {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payment signature"})
 		return
 	}
@@ -755,7 +761,9 @@ func generateMonthlyInvoiceNumber(subscriptionID uint) string {
 	timestamp := time.Now().Format("20060102") // YYYYMMDD format
 	return "INV-M-" + timestamp + "-" + strconv.FormatUint(uint64(subscriptionID), 10)
 }
+
 func verifyRazorpaySignature(data, signature, secret string) bool {
+
 	h := hmac.New(sha256.New, []byte(secret))
 	h.Write([]byte(data))
 	expectedSignature := hex.EncodeToString(h.Sum(nil))

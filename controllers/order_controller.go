@@ -203,8 +203,9 @@ func CreateOrder(c *gin.Context) {
 }
 
 func CancelOrder(c *gin.Context) {
+	fmt.Println("🔥 CancelOrder hit!")
+
 	role, exists := c.Get("role")
-	fmt.Println("C:", c)
 	fmt.Println("Role:", role)
 	if !exists || role != "customer" {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied"})
@@ -229,8 +230,19 @@ func CancelOrder(c *gin.Context) {
 		return
 	}
 
-	userID, exists := c.Get("userID")
-	if exists && order.CustomerID != userID.(uint) {
+	// ✅ FIX: correct key and strict validation
+	userIDInterface, ok := c.Get("user_id")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found"})
+		return
+	}
+	userID, ok := userIDInterface.(uint)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	if order.CustomerID != userID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission to cancel this order"})
 		return
 	}
@@ -693,4 +705,59 @@ func AssignOrderToFranchise(c *gin.Context) {
 func generateInvoiceNumber(orderID int64) string {
 	timestamp := time.Now().Format("20060102") // YYYYMMDD format
 	return "INV-" + timestamp + "-" + strconv.FormatInt(orderID, 10)
+}
+
+// AssignOrderToAgent allows admin to assign a service agent to an order
+func AssignOrderToAgent(c *gin.Context) {
+	fmt.Println("🔥 AssignOrderToAgent route hit!")
+
+	role, _ := c.Get("role")
+	if role != "admin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only admin can assign service agents"})
+		return
+	}
+
+	orderIDStr := c.Param("id")
+	orderID, err := strconv.Atoi(orderIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid order ID"})
+		return
+	}
+
+	var req struct {
+		ServiceAgentID uint `json:"service_agent_id" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	// Update order with service agent ID
+	if err := database.DB.Model(&database.Order{}).
+		Where("id = ?", orderID).
+		Update("service_agent_id", req.ServiceAgentID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to assign service agent"})
+		return
+	}
+
+	// ✅ Reload the full order with related data
+	var order database.Order
+	// ✅ Use orderID directly here instead of order.ID
+	// ✅ Use the incoming `orderID` directly, not `order.ID`
+	if err := database.DB.
+		Preload("Customer").
+		Preload("Product").
+		Preload("Franchise.Owner").
+		Preload("ServiceAgent").
+		First(&order, orderID).Error; err != nil {
+		log.Printf("Failed to reload order with associations: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load full order details"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Order assigned to service agent successfully",
+		"order":   order,
+	})
 }

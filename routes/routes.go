@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 
 	"aquahome/controllers"
@@ -9,6 +11,8 @@ import (
 
 // SetupRoutes configures all application routes
 func SetupRoutes(r *gin.Engine) {
+	fmt.Println("✅ SetupRoutes called")
+
 	// Public routes (no authentication required)
 	public := r.Group("/api")
 	{
@@ -78,11 +82,16 @@ func SetupRoutes(r *gin.Engine) {
 		// Orders
 		orders := protected.Group("/orders")
 		{
+			fmt.Println("✅ Orders route group initializing")
+
 			orders.POST("", middleware.CustomerAuthMiddleware(), controllers.CreateOrder)
-			orders.POST(":id/cancel", middleware.CustomerAuthMiddleware(), controllers.CancelOrder)
+			orders.POST("/:id/cancel", middleware.CustomerAuthMiddleware(), controllers.CancelOrder)
 			orders.GET("/customer", middleware.CustomerAuthMiddleware(), controllers.GetCustomerOrders)
 			orders.PUT("/:id/status", middleware.AdminOrFranchiseAuthMiddleware(), controllers.UpdateOrderStatus)
 			orders.GET("/:id", controllers.GetOrderByID)
+
+			orders.PATCH("/:id/assign-agent", middleware.AdminAuthMiddleware(), controllers.AssignOrderToAgent)
+
 		}
 
 		// Subscriptions

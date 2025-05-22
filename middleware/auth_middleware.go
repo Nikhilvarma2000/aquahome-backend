@@ -76,7 +76,7 @@ func FranchiseOwnerAuthMiddleware() gin.HandlerFunc {
 }
 
 func CustomerAuthMiddleware() gin.HandlerFunc {
-	return RoleAuthMiddleware("admin", "customer")
+	return RoleAuthMiddleware("customer")
 }
 
 func ServiceAgentAuthMiddleware() gin.HandlerFunc {
