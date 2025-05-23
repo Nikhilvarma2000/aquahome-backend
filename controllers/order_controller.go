@@ -380,11 +380,13 @@ func GetOrderByID(c *gin.Context) {
 	// Define order detail struct with joined fields
 	type OrderDetail struct {
 		database.Order
-		ProductName   string `json:"product_name"`
-		ProductImage  string `json:"product_image"`
-		CustomerName  string `json:"customer_name"`
-		CustomerEmail string `json:"customer_email"`
-		CustomerPhone string `json:"customer_phone"`
+		ProductName       string `json:"product_name"`
+		ProductImage      string `json:"product_image"`
+		CustomerName      string `json:"customer_name"`
+		CustomerEmail     string `json:"customer_email"`
+		CustomerPhone     string `json:"customer_phone"`
+		ServiceAgentName  string `json:"service_agent_name"`
+		ServiceAgentPhone string `json:"service_agent_phone"`
 	}
 
 	// Start building the query with GORM
