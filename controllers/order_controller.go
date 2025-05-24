@@ -50,6 +50,8 @@ func CreateOrder(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
 		return
 	}
+	fmt.Printf("🔥 Received Payload: %+v\n", orderRequest)
+
 	fmt.Println("Incoming Product ID:", orderRequest.ProductID)
 	fmt.Println("Incoming Franchise ID:", orderRequest.FranchiseID)
 
