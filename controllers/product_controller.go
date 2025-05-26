@@ -72,7 +72,8 @@ func CreateProduct(c *gin.Context) {
 // GetProducts gets all products (admin sees all, customer/public sees all but can only order active ones)
 func GetProducts(c *gin.Context) {
 	var products []database.Product
-	query := database.DB
+
+	query := database.DB.Preload("Franchise") // 👈 preload franchise
 
 	roleInterface, exists := c.Get("role")
 	if exists {
@@ -96,7 +97,7 @@ func GetProductByID(c *gin.Context) {
 	id := c.Param("id")
 	var product database.Product
 
-	if err := database.DB.First(&product, id).Error; err != nil {
+	if err := database.DB.Preload("Franchise").First(&product, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
 		} else {
