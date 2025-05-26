@@ -118,6 +118,7 @@ func GetAllFranchises(c *gin.Context) {
 }
 
 // PATCH /franchises/:id - Admin updates franchise details
+// PATCH /franchises/:id - Admin updates franchise details
 func AdminUpdateFranchise(c *gin.Context) {
 	role, exists := c.Get("role")
 	if !exists || role != "admin" {
@@ -139,14 +140,13 @@ func AdminUpdateFranchise(c *gin.Context) {
 	}
 
 	var request struct {
-		Name        string `json:"name"`
-		Phone       string `json:"phone"`
-		Email       string `json:"email"`
-		City        string `json:"city"`
-		State       string `json:"state"`
-		ZipCode     string `json:"zip_code"`
-		Address     string `json:"address"`
-		AreaPolygon string `json:"area_polygon"` // Optional
+		Name    string `json:"name"`
+		Phone   string `json:"phone"`
+		Email   string `json:"email"`
+		City    string `json:"city"`
+		State   string `json:"state"`
+		ZipCode string `json:"zip_code"`
+		Address string `json:"address"`
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {
@@ -154,6 +154,7 @@ func AdminUpdateFranchise(c *gin.Context) {
 		return
 	}
 
+	// Update fields
 	franchise.Name = request.Name
 	franchise.Phone = request.Phone
 	franchise.Email = request.Email
@@ -161,12 +162,9 @@ func AdminUpdateFranchise(c *gin.Context) {
 	franchise.State = request.State
 	franchise.ZipCode = request.ZipCode
 	franchise.Address = request.Address
-	if request.AreaPolygon != "" {
-		franchise.AreaPolygon = request.AreaPolygon
-	}
 
 	if err := database.DB.Save(&franchise).Error; err != nil {
-		log.Printf("❌ Franchise creation error: %v", err)
+		log.Printf("❌ Franchise update error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

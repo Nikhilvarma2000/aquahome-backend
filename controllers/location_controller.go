@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -26,7 +25,6 @@ type FranchiseWithOwner struct {
 	ZipCode       string `json:"zip_code"`
 	Phone         string `json:"phone"`
 	Email         string `json:"email"`
-	AreaPolygon   string `json:"area_polygon"`
 	IsActive      bool   `json:"is_active"`
 	ApprovalState string `json:"approval_state"`
 	CreatedAt     string `json:"created_at"`
@@ -35,14 +33,13 @@ type FranchiseWithOwner struct {
 
 // FranchiseRequest contains data for franchise creation or update
 type FranchiseRequest struct {
-	Name        string          `json:"name" binding:"required"`
-	Address     string          `json:"address" binding:"required"`
-	City        string          `json:"city" binding:"required"`
-	State       string          `json:"state" binding:"required"`
-	ZipCode     string          `json:"zip_code" binding:"required"`
-	Phone       string          `json:"phone" binding:"required"`
-	Email       string          `json:"email" binding:"required,email"`
-	AreaPolygon json.RawMessage `json:"area_polygon" binding:"required"`
+	Name    string `json:"name" binding:"required"`
+	Address string `json:"address" binding:"required"`
+	City    string `json:"city" binding:"required"`
+	State   string `json:"state" binding:"required"`
+	ZipCode string `json:"zip_code" binding:"required"`
+	Phone   string `json:"phone" binding:"required"`
+	Email   string `json:"email" binding:"required,email"`
 }
 
 // CreateFranchise creates a new franchise (Franchise Owner only)
@@ -74,18 +71,6 @@ func CreateFranchise(c *gin.Context) {
 		return
 	}
 
-	// Validate GeoJSON polygon
-	if !isValidGeoJSONPolygon(franchiseRequest.AreaPolygon) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid GeoJSON polygon format"})
-		return
-	}
-
-	// Check for overlapping service areas
-	if overlapsExistingFranchise(franchiseRequest.AreaPolygon) {
-		c.JSON(http.StatusConflict, gin.H{"error": "Your service area overlaps with an existing franchise"})
-		return
-	}
-
 	// Begin transaction
 	tx := database.DB.Begin()
 	if tx.Error != nil {
@@ -104,7 +89,6 @@ func CreateFranchise(c *gin.Context) {
 		ZipCode:       franchiseRequest.ZipCode,
 		Phone:         franchiseRequest.Phone,
 		Email:         franchiseRequest.Email,
-		AreaPolygon:   string(franchiseRequest.AreaPolygon),
 		IsActive:      false,     // Initially inactive until approved
 		ApprovalState: "pending", // Initial approval state
 	}
@@ -250,13 +234,6 @@ func GetFranchises(c *gin.Context) {
 		return
 	}
 
-	// Process AreaPolygon to ensure it's proper JSON format for the response
-	for i := range franchises {
-		if franchises[i].AreaPolygon != "" {
-			franchises[i].AreaPolygon = string(json.RawMessage(franchises[i].AreaPolygon))
-		}
-	}
-
 	c.JSON(http.StatusOK, franchises)
 }
 
@@ -314,11 +291,6 @@ func PublicGetFranchiseByID(c *gin.Context) {
 		log.Printf("Database error: %v", result.Error)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Server error"})
 		return
-	}
-
-	// Ensure area_polygon is properly formatted JSON
-	if franchise.AreaPolygon != "" {
-		franchise.Franchise.AreaPolygon = string(json.RawMessage(franchise.Franchise.AreaPolygon))
 	}
 
 	// Get statistics if admin or franchise owner
@@ -394,18 +366,6 @@ func UpdateFranchise(c *gin.Context) {
 		return
 	}
 
-	// Validate GeoJSON polygon
-	if !isValidGeoJSONPolygon(franchiseRequest.AreaPolygon) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid GeoJSON polygon format"})
-		return
-	}
-
-	// Check for overlapping service areas (excluding this franchise)
-	if overlapsOtherFranchise(franchiseRequest.AreaPolygon, int64(franchiseID)) {
-		c.JSON(http.StatusConflict, gin.H{"error": "Your service area overlaps with another franchise"})
-		return
-	}
-
 	// Update franchise fields
 	franchise.Name = franchiseRequest.Name
 	franchise.Address = franchiseRequest.Address
@@ -414,7 +374,6 @@ func UpdateFranchise(c *gin.Context) {
 	franchise.ZipCode = franchiseRequest.ZipCode
 	franchise.Phone = franchiseRequest.Phone
 	franchise.Email = franchiseRequest.Email
-	franchise.AreaPolygon = string(franchiseRequest.AreaPolygon)
 
 	// If franchise owner is resubmitting a rejected application, update approval state
 	if role == "franchise_owner" && franchise.ApprovalState == "rejected" {
@@ -600,45 +559,7 @@ func RejectFranchise(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Franchise rejected successfully"})
 }
 
-// Helper function to validate GeoJSON polygon
-func isValidGeoJSONPolygon(polygon json.RawMessage) bool {
-	var geoJSON map[string]interface{}
-	if err := json.Unmarshal(polygon, &geoJSON); err != nil {
-		log.Printf("Invalid GeoJSON: %v", err)
-		return false
-	}
-
-	// Check if it's a valid GeoJSON
-	if geoJSON["type"] != "Polygon" && geoJSON["type"] != "MultiPolygon" {
-		log.Printf("Invalid GeoJSON type: %v", geoJSON["type"])
-		return false
-	}
-
-	// Check if coordinates exist
-	if _, ok := geoJSON["coordinates"]; !ok {
-		log.Printf("GeoJSON missing coordinates")
-		return false
-	}
-
-	return true
-}
-
 // Helper function to check if a polygon overlaps with any existing franchise
-func overlapsExistingFranchise(polygon json.RawMessage) bool {
-	// This is a simplified check. In a real app, you'd use spatial extensions or libraries.
-	// For SQLite, you might want to use SpatiaLite extension for proper spatial queries.
-
-	// For now, let's assume no overlap to allow application to work
-	log.Printf("Checking for overlapping franchises (not implemented)")
-	return false
-}
-
-// Helper function to check if a polygon overlaps with other franchises (excluding the given one)
-func overlapsOtherFranchise(polygon json.RawMessage, excludeFranchiseID int64) bool {
-	// Similar to above, this is a simplified check
-	log.Printf("Checking for overlapping franchises excluding ID %d (not implemented)", excludeFranchiseID)
-	return false
-}
 
 // GetFranchiseServiceAgents gets service agents associated with a franchise
 func GetFranchiseServiceAgents(c *gin.Context) {

@@ -53,10 +53,29 @@ type Franchise struct {
 	Email          string  `json:"email"`
 	IsActive       bool    `json:"is_active"`
 	ServiceArea    string  `json:"service_area"`
-	AreaPolygon    string  `json:"area_polygon"`
 	CoverageRadius float64 `json:"coverage_radius"`
 	ApprovalState  string  `json:"approval_state"`
-	Owner          User    `gorm:"foreignKey:OwnerID" json:"owner"`
+
+	Owner User `gorm:"foreignKey:OwnerID" json:"owner"`
+
+	// 🆕 ADD THIS LINE:
+	Locations []Location `gorm:"many2many:franchise_locations;" json:"locations"`
+}
+
+// Location represents a serviceable ZIP area
+type Location struct {
+	gorm.Model
+	Name       string      `json:"name"`
+	ZipCodes   string      `json:"zip_codes"` // comma-separated ZIPs
+	IsActive   bool        `json:"is_active"`
+	Franchises []Franchise `gorm:"many2many:franchise_locations;" json:"franchises"`
+}
+
+// FranchiseLocation is the join table for many-to-many Franchise ↔ Location
+type FranchiseLocation struct {
+	ID          uint `gorm:"primaryKey"`
+	FranchiseID uint
+	LocationID  uint
 }
 
 // Order represents a customer order

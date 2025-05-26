@@ -13,6 +13,8 @@ func RunMigrations() error {
 		&User{},
 		&Product{},
 		&Franchise{},
+		&Location{},          // ✅ NEW: Service ZIP areas
+		&FranchiseLocation{}, // ✅ NEW: Join table
 		&Order{},
 		&Subscription{},
 		&ServiceRequest{},
