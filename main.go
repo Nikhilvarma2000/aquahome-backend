@@ -20,23 +20,35 @@ func main() {
 	// Initialize config
 	config.InitConfig()
 
-	// Initialize DBs
+	// Initialize PostgreSQL DB
 	if err := database.InitDB(); err != nil {
 		log.Fatalf("❌ Failed to initialize GORM database: %v", err)
 	}
+
+	// ✅ Auto-migrate all models
+	if err := database.DB.AutoMigrate(
+		&database.User{},
+		&database.Franchise{},
+		&database.Order{},
+		&database.Subscription{},
+		&database.ServiceRequest{},
+		&database.Payment{},
+		&database.Notification{},
+		&database.Location{},
+	); err != nil {
+		log.Fatalf("❌ AutoMigrate failed: %v", err)
+	}
+	log.Println("✅ AutoMigrate completed")
+
+	// (Optional) Initialize any legacy DB (only if needed)
 	if err := database.InitLegacyDB(); err != nil {
 		log.Fatalf("❌ Failed to initialize legacy database: %v", err)
 	}
 
-	// Run migrations
-	if err := database.RunMigrations(); err != nil {
-		log.Fatalf("❌ Failed to run migrations: %v", err)
-	}
-
-	// Setup router
+	// Setup Gin router
 	r := gin.Default()
 
-	// Enable CORS
+	// Enable CORS for all origins
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
@@ -45,8 +57,10 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	// Register routes
+	// Setup all API routes
 	routes.SetupRoutes(r)
+
+	// Print all registered routes
 	for _, route := range r.Routes() {
 		log.Printf("🔗 %s %s", route.Method, route.Path)
 	}
@@ -54,9 +68,10 @@ func main() {
 	// Start server
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "5000" // fallback for local dev
+		port = "5000" // default port for local
 	}
 	log.Printf("🚀 Server running at http://0.0.0.0:%s", port)
+
 	if err := r.Run("0.0.0.0:" + port); err != nil {
 		log.Fatalf("❌ Server failed: %v", err)
 	}
