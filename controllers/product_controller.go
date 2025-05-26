@@ -24,6 +24,7 @@ type ProductRequest struct {
 	Specifications   string  `json:"specifications"`
 	MaintenanceCycle int     `json:"maintenance_cycle"`
 	IsActive         bool    `json:"is_active"`
+	FranchiseID      uint    `json:"franchise_id" binding:"required"` // ✅ Add this
 }
 
 // CreateProduct creates a new product (Admin only)
@@ -55,6 +56,7 @@ func CreateProduct(c *gin.Context) {
 		Specifications:   productRequest.Specifications,
 		MaintenanceCycle: productRequest.MaintenanceCycle,
 		IsActive:         productRequest.IsActive,
+		FranchiseID:      productRequest.FranchiseID, // ✅ Important
 	}
 
 	result := database.DB.Create(&product)
@@ -155,6 +157,7 @@ func UpdateProduct(c *gin.Context) {
 	product.Specifications = productRequest.Specifications
 	product.MaintenanceCycle = productRequest.MaintenanceCycle
 	product.IsActive = productRequest.IsActive
+	product.FranchiseID = productRequest.FranchiseID // ✅ Also update
 
 	result = database.DB.Save(&product)
 	if result.Error != nil {
@@ -222,10 +225,10 @@ func ToggleProductStatus(c *gin.Context) {
 	}
 	log.Println("Received toggle status:", body.IsActive)
 	product.IsActive = body.IsActive
-    if err := database.DB.Save(&product).Error; err != nil {
-    log.Println("Save failed:", err)
-    	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update product status"})
-    	return
-    }
+	if err := database.DB.Save(&product).Error; err != nil {
+		log.Println("Save failed:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update product status"})
+		return
+	}
 	c.JSON(http.StatusOK, product)
 }

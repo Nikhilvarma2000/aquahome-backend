@@ -165,7 +165,7 @@ func AdminUpdateFranchise(c *gin.Context) {
 		franchise.AreaPolygon = request.AreaPolygon
 	}
 
-	if err := database.DB.Create(&franchise).Error; err != nil {
+	if err := database.DB.Save(&franchise).Error; err != nil {
 		log.Printf("❌ Franchise creation error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

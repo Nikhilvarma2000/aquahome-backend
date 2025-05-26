@@ -25,20 +25,22 @@ type User struct {
 // Product represents a water purifier product
 type Product struct {
 	gorm.Model
-	Name             string  `json:"name"`
-	Description      string  `json:"description"`
-	MonthlyRent      float64 `json:"monthly_rent"`
-	SecurityDeposit  float64 `json:"security_deposit"`
-	InstallationFee  float64 `json:"installation_fee"`
-	ImageURL         string  `json:"image_url"`
-	Features         string  `json:"features"`
-	Specifications   string  `json:"specifications"`
-	AvailableStock   int     `json:"available_stock"`
-	MaintenanceCycle int     `json:"maintenance_cycle"`
-	IsActive         bool    `json:"is_active" gorm:"column:is_active"` // ✅ ADDED THIS
+	Name             string    `json:"name"`
+	Description      string    `json:"description"`
+	MonthlyRent      float64   `json:"monthly_rent"`
+	SecurityDeposit  float64   `json:"security_deposit"`
+	InstallationFee  float64   `json:"installation_fee"`
+	ImageURL         string    `json:"image_url"`
+	Features         string    `json:"features"`
+	Specifications   string    `json:"specifications"`
+	AvailableStock   int       `json:"available_stock"`
+	MaintenanceCycle int       `json:"maintenance_cycle"`
+	IsActive         bool      `json:"is_active" gorm:"column:is_active"` // ED THIS
+	FranchiseID      uint      `json:"franchise_id"`                      // ✅ NEW
+	Franchise        Franchise `gorm:"foreignKey:FranchiseID" json:"franchise"`
 }
 
-// Franchise represents a franchise location
+// Franchise repreents a franchise location
 type Franchise struct {
 	gorm.Model
 	OwnerID        uint    `json:"owner_id"`
