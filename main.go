@@ -35,10 +35,14 @@ func main() {
 		&database.Payment{},
 		&database.Notification{},
 		&database.Location{},
+		&database.FranchiseLocation{}, // ✅ Include join table
 	); err != nil {
 		log.Fatalf("❌ AutoMigrate failed: %v", err)
 	}
 	log.Println("✅ AutoMigrate completed")
+
+	// ✅ Seed default admin if not exists
+	database.SeedDefaultAdmin()
 
 	// (Optional) Initialize any legacy DB (only if needed)
 	if err := database.InitLegacyDB(); err != nil {

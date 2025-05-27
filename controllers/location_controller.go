@@ -33,13 +33,14 @@ type FranchiseWithOwner struct {
 
 // FranchiseRequest contains data for franchise creation or update
 type FranchiseRequest struct {
-	Name    string `json:"name" binding:"required"`
-	Address string `json:"address" binding:"required"`
-	City    string `json:"city" binding:"required"`
-	State   string `json:"state" binding:"required"`
-	ZipCode string `json:"zip_code" binding:"required"`
-	Phone   string `json:"phone" binding:"required"`
-	Email   string `json:"email" binding:"required,email"`
+	Name        string `json:"name" binding:"required"`
+	Address     string `json:"address" binding:"required"`
+	City        string `json:"city" binding:"required"`
+	State       string `json:"state" binding:"required"`
+	ZipCode     string `json:"zip_code" binding:"required"`
+	Phone       string `json:"phone" binding:"required"`
+	Email       string `json:"email" binding:"required,email"`
+	LocationIDs []uint `json:"location_ids"` // ✅ this is news
 }
 
 // CreateFranchise creates a new franchise (Franchise Owner only)
@@ -99,6 +100,21 @@ func CreateFranchise(c *gin.Context) {
 		log.Printf("Database error: %v", result.Error)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating franchise"})
 		return
+	}
+
+	// ✅ Link selected locations to this franchise
+	if len(franchiseRequest.LocationIDs) > 0 {
+		var locations []database.Location
+		if err := tx.Where("id IN ?", franchiseRequest.LocationIDs).Find(&locations).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid location IDs"})
+			return
+		}
+		if err := tx.Model(&franchise).Association("Locations").Replace(&locations); err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to link locations to franchise"})
+			return
+		}
 	}
 
 	franchiseID := franchise.ID
@@ -202,7 +218,6 @@ func GetFranchises(c *gin.Context) {
 			franchises.zip_code, 
 			franchises.phone, 
 			franchises.email, 
-			franchises.area_polygon, 
 			franchises.is_active, 
 			franchises.approval_state, 
 			franchises.created_at, 
@@ -374,6 +389,19 @@ func UpdateFranchise(c *gin.Context) {
 	franchise.ZipCode = franchiseRequest.ZipCode
 	franchise.Phone = franchiseRequest.Phone
 	franchise.Email = franchiseRequest.Email
+
+	// ✅ Update linked locations if provided
+	if len(franchiseRequest.LocationIDs) > 0 {
+		var locations []database.Location
+		if err := database.DB.Where("id IN ?", franchiseRequest.LocationIDs).Find(&locations).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid location IDs"})
+			return
+		}
+		if err := database.DB.Model(&franchise).Association("Locations").Replace(&locations); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update linked locations"})
+			return
+		}
+	}
 
 	// If franchise owner is resubmitting a rejected application, update approval state
 	if role == "franchise_owner" && franchise.ApprovalState == "rejected" {
