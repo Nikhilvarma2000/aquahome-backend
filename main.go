@@ -44,10 +44,10 @@ func main() {
 	// ✅ Seed default admin if not exists
 	database.SeedDefaultAdmin()
 
-	// (Optional) Initialize any legacy DB (only if needed)
-	if err := database.InitLegacyDB(); err != nil {
-		log.Fatalf("❌ Failed to initialize legacy database: %v", err)
-	}
+	// // (Optional) Initialize any legacy DB (only if needed)
+	// if err := database.InitLegacyDB(); err != nil {
+	// 	log.Fatalf("❌ Failed to initialize legacy database: %v", err)
+	// }
 
 	// Setup Gin router
 	r := gin.Default()
