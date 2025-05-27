@@ -3,6 +3,7 @@ package database
 import (
 	"time"
 
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -65,10 +66,10 @@ type Franchise struct {
 // Location represents a serviceable ZIP area
 type Location struct {
 	gorm.Model
-	Name       string      `json:"name"`
-	ZipCodes   string      `json:"zip_codes"` // comma-separated ZIPs
-	IsActive   bool        `json:"is_active"`
-	Franchises []Franchise `gorm:"many2many:franchise_locations;" json:"franchises"`
+	Name       string         `json:"name"`
+	ZipCodes   pq.StringArray `gorm:"type:text[]" json:"zip_codes"` // comma-separated ZIPs
+	IsActive   bool           `json:"is_active"`
+	Franchises []Franchise    `gorm:"many2many:franchise_locations;" json:"franchises"`
 }
 
 // FranchiseLocation is the join table for many-to-many Franchise ↔ Location

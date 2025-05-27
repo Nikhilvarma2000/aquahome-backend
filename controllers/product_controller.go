@@ -45,6 +45,13 @@ func CreateProduct(c *gin.Context) {
 		productRequest.MaintenanceCycle = 90 // Default 90 days
 	}
 
+	// Validate that the FranchiseID exists in the system
+	var franchise database.Franchise
+	if err := database.DB.First(&franchise, productRequest.FranchiseID).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Franchise ID"})
+		return
+	}
+
 	product := database.Product{
 		Name:             productRequest.Name,
 		Description:      productRequest.Description,

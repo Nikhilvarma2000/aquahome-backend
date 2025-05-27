@@ -280,3 +280,62 @@ func GetUsersByRoleNew(c *gin.Context) {
 
 	c.JSON(http.StatusOK, users)
 }
+func GetCustomerProducts(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	var user database.User
+	if err := database.DB.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "User not found"})
+		return
+	}
+
+	zip := user.ZipCode
+	if zip == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ZIP code not found in user profile"})
+		return
+	}
+
+	// 1. Find matching locations
+	var locations []database.Location
+	if err := database.DB.Where("zip_codes LIKE ?", "%"+zip+"%").Find(&locations).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch locations"})
+		return
+	}
+
+	if len(locations) == 0 {
+		c.JSON(http.StatusOK, []interface{}{})
+		return
+	}
+
+	var locationIDs []uint
+	for _, loc := range locations {
+		locationIDs = append(locationIDs, loc.ID)
+	}
+
+	// 2. Find franchises linked to those locations
+	type FranchiseLocation struct {
+		FranchiseID uint
+	}
+	var links []FranchiseLocation
+	database.DB.Raw("SELECT DISTINCT franchise_id FROM franchise_locations WHERE location_id IN ?", locationIDs).Scan(&links)
+
+	var franchiseIDs []uint
+	for _, l := range links {
+		franchiseIDs = append(franchiseIDs, l.FranchiseID)
+	}
+
+	if len(franchiseIDs) == 0 {
+		c.JSON(http.StatusOK, []interface{}{})
+		return
+	}
+
+	// 3. Get products linked to those franchises
+	var products []database.Product
+	database.DB.Preload("Franchise").Where("is_active = ? AND franchise_id IN ?", true, franchiseIDs).Find(&products)
+
+	c.JSON(http.StatusOK, products)
+}
