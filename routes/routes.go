@@ -136,6 +136,7 @@ func SetupRoutes(r *gin.Engine) {
 			franchises.PUT("/:id", middleware.AdminOrFranchiseAuthMiddleware(), controllers.UpdateFranchise)
 			franchises.GET("/:id/service-agents", middleware.AdminOrFranchiseAuthMiddleware(), controllers.GetFranchiseServiceAgents)
 			franchises.GET("/search", controllers.SearchFranchises)
+			franchises.POST("/locations", controllers.AddFranchiseLocations)
 			franchises.GET("/locations", controllers.GetMyLocations)
 
 			//this route for dashboard
