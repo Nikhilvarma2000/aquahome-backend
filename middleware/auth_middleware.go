@@ -1,12 +1,12 @@
 package middleware
 
 import (
+	"aquahome/database"
+	"aquahome/utils"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-
-	"aquahome/utils"
 )
 
 // AuthMiddleware validates JWT tokens and extracts user information
@@ -34,11 +34,20 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// ✅ Directly use UserID, already uint
-		c.Set("userID", claims.UserID)  // camelCase (used in new code)
-		c.Set("user_id", claims.UserID) // snake_case (used in old code)
-		c.Set("email", claims.Email)
-		c.Set("role", claims.Role)
+		// Fetch full user object from DB
+		var user database.User
+		if err := database.DB.First(&user, claims.UserID).Error; err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+			c.Abort()
+			return
+		}
+
+		// ✅ Set everything in context
+		c.Set("userID", user.ID)
+		c.Set("user_id", user.ID)
+		c.Set("email", user.Email)
+		c.Set("role", user.Role)
+		c.Set("user", user) // ✅ THIS LINE IS THE KEY FIX
 
 		c.Next()
 	}
