@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 
 	"aquahome/database"
@@ -733,4 +734,48 @@ func GetMyLocations(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, locations)
+}
+func AddFranchiseLocations(c *gin.Context) {
+	role, exists := c.Get("role")
+	if !exists || role != "franchise_owner" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied"})
+		return
+	}
+
+	userID, _ := c.Get("user_id")
+	var user database.User
+	if err := database.DB.First(&user, userID).Error; err != nil || user.FranchiseID == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Franchise not linked to your account"})
+		return
+	}
+
+	var req struct {
+		Name     string   `json:"name"`
+		ZipCodes []string `json:"zipCodes"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil || len(req.ZipCodes) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	var created []database.Location
+	for _, zip := range req.ZipCodes {
+		location := database.Location{
+			Name:     req.Name,
+			ZipCodes: pq.StringArray{zip},
+		}
+		if err := database.DB.Where("zip_code = ?", zip).FirstOrCreate(&location).Error; err != nil {
+			continue
+		}
+
+		link := database.FranchiseLocation{
+			FranchiseID: *user.FranchiseID,
+			LocationID:  location.ID,
+		}
+		database.DB.FirstOrCreate(&link, link)
+		created = append(created, location)
+	}
+
+	c.JSON(http.StatusOK, created)
 }
