@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -12,18 +11,17 @@ import (
 	"aquahome/config"
 	"aquahome/database"
 	"aquahome/routes"
-	"aquahome/utils"
 )
 
 func main() {
 
 	// 🔐 TEMP: Print hash for admin password
-	hashed, err := utils.HashPassword("admin123")
-	if err != nil {
-		log.Fatalf("❌ Failed to hash password: %v", err)
-	}
-	fmt.Println("🔐 Hashed password for 'admin123':", hashed)
-	os.Exit(0) // Exit here to stop rest of the app
+	// hashed, err := utils.HashPassword("admin123")
+	// if err != nil {
+	// 	log.Fatalf("❌ Failed to hash password: %v", err)
+	// }
+	// fmt.Println("🔐 Hashed password for 'admin123':", hashed)
+	// os.Exit(0) // Exit here to stop rest of the app
 	// Load environment variables (optional for local dev)
 	_ = godotenv.Load()
 
