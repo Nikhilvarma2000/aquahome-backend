@@ -21,6 +21,9 @@ type User struct {
 	City         string `json:"city"`
 	State        string `json:"state"`
 	ZipCode      string `json:"zip_code"`
+	// models/user.go
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
 }
 
 // Product represents a water purifier product

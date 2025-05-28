@@ -279,3 +279,39 @@ func GetUsersByRoleNew(c *gin.Context) {
 
 	c.JSON(http.StatusOK, users)
 }
+func UpdateUserLocation(c *gin.Context) {
+	var req struct {
+		Latitude  float64 `json:"latitude"`
+		Longitude float64 `json:"longitude"`
+	}
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	var user database.User
+	if err := database.DB.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	user.Latitude = req.Latitude
+	user.Longitude = req.Longitude
+
+	if err := database.DB.Save(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update location"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Location updated successfully",
+		"user":    user,
+	})
+}
