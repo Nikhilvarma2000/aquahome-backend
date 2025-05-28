@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"aquahome/database"
+	"aquahome/utils"
 	"errors"
 	"log"
 	"net/http"
@@ -9,9 +11,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-
-	"aquahome/database"
-	"aquahome/utils"
 )
 
 // GetUserProfileNew returns the profile of the authenticated user using GORM
@@ -336,6 +335,27 @@ func GetCustomerProducts(c *gin.Context) {
 	// 3. Get products linked to those franchises
 	var products []database.Product
 	database.DB.Preload("Franchise").Where("is_active = ? AND franchise_id IN ?", true, franchiseIDs).Find(&products)
+
+	c.JSON(http.StatusOK, products)
+}
+func GetCustomerProductsByZip(c *gin.Context) {
+	zip := c.Query("zip")
+	if zip == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ZIP code is required"})
+		return
+	}
+
+	var products []database.Product
+	err := database.DB.
+		Preload("Franchise").
+		Joins("JOIN franchises ON franchises.id = products.franchise_id").
+		Where("products.is_active = ? AND franchises.is_active = ? AND franchises.zip_code = ?", true, true, zip).
+		Find(&products).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch products"})
+		return
+	}
 
 	c.JSON(http.StatusOK, products)
 }
