@@ -171,3 +171,36 @@ func AdminUpdateFranchise(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Franchise updated successfully"})
 }
+
+// PATCH /admin/franchises/:id/toggle-status
+func ToggleFranchiseStatus(c *gin.Context) {
+	role, exists := c.Get("role")
+	if !exists || role != "admin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied"})
+		return
+	}
+
+	idParam := c.Param("id")
+	id, err := strconv.ParseUint(idParam, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid franchise ID"})
+		return
+	}
+
+	var input struct {
+		IsActive bool `json:"is_active"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	if err := database.DB.Model(&database.Franchise{}).
+		Where("id = ?", id).
+		Update("is_active", input.IsActive).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update franchise status"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Franchise status updated"})
+}
