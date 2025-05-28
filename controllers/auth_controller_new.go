@@ -106,7 +106,14 @@ func RegisterNew(c *gin.Context) {
 	}
 
 	// Hash password
-	hashedPassword, err := utils.HashPassword(registerRequest.Password)
+	var hashedPassword string
+	if registerRequest.Role == database.RoleCustomer {
+		hashedPassword, err = utils.HashPassword(registerRequest.Password)
+	} else {
+		// Set default password for franchise_owner, service_agent, or admin
+		hashedPassword, err = utils.HashPassword("12345678")
+	}
+
 	if err != nil {
 		log.Printf("Password hashing error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process password"})
