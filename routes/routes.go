@@ -69,6 +69,7 @@ func SetupRoutes(r *gin.Engine) {
 			admin.PATCH("/franchises/:id", controllers.AdminUpdateFranchise)
 			admin.POST("/franchises", controllers.CreateFranchise)
 			admin.GET("/franchises", controllers.GetAllFranchises)
+			admin.PATCH("/franchises/:id/toggle-status", controllers.ToggleFranchiseStatus)
 
 			// ✅ Orders
 			admin.PATCH("/orders/:id/assign", controllers.AssignOrderToFranchise)
