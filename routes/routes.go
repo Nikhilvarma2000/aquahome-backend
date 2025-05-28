@@ -46,6 +46,7 @@ func SetupRoutes(r *gin.Engine) {
 		protected.POST("/profile/change-password/v2", controllers.ChangePasswordNew)
 
 		// Admin routes
+		// Admin routes
 		admin := protected.Group("/admin")
 		admin.Use(middleware.AdminAuthMiddleware())
 		{
@@ -63,13 +64,18 @@ func SetupRoutes(r *gin.Engine) {
 			admin.PUT("/products/:id", controllers.UpdateProduct)
 			admin.DELETE("/products/:id", controllers.DeleteProduct)
 			admin.PATCH("/products/:id/toggle-status", controllers.ToggleProductStatus)
+
+			// ✅ Franchise Management
 			admin.PATCH("/franchises/:id", controllers.AdminUpdateFranchise)
 			admin.POST("/franchises", controllers.CreateFranchise)
+			admin.GET("/franchises", controllers.GetAllFranchises)
+
+			// ✅ Orders
 			admin.PATCH("/orders/:id/assign", controllers.AssignOrderToFranchise)
 			admin.GET("/customers/:id/subscriptions", controllers.GetCustomerSubscriptionsByAdmin)
 
-			//  this route for fetching all franchises
-			admin.GET("/franchises", controllers.GetAllFranchises)
+			// ✅ NEW: Locations
+			admin.GET("/locations", controllers.GetAllLocations)
 		}
 
 		// 🧑‍🔧 Service Agent Routes

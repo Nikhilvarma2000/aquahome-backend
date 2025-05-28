@@ -690,3 +690,20 @@ func SearchFranchises(c *gin.Context) {
 
 	c.JSON(http.StatusOK, franchises)
 }
+
+// GetAllLocations returns all available service locations (Admin only)
+func GetAllLocations(c *gin.Context) {
+	role, exists := c.Get("role")
+	if !exists || role != "admin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied"})
+		return
+	}
+
+	var locations []database.Location
+	if err := database.DB.Preload("ZipCodes").Find(&locations).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch locations"})
+		return
+	}
+
+	c.JSON(http.StatusOK, locations)
+}
