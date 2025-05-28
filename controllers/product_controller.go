@@ -240,7 +240,7 @@ func ToggleProductStatus(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, product)
 }
-func GetCustomerProductsByZip(c *gin.Context) {
+func GetCustomerProducts(c *gin.Context) {
 	zip := c.Query("zip")
 	if zip == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ZIP code is required"})
