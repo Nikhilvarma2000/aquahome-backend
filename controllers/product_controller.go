@@ -240,3 +240,24 @@ func ToggleProductStatus(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, product)
 }
+func GetCustomerProductsByZip(c *gin.Context) {
+	zip := c.Query("zip")
+	if zip == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ZIP code is required"})
+		return
+	}
+
+	var products []database.Product
+	err := database.DB.
+		Preload("Franchise").
+		Joins("JOIN franchises ON franchises.id = products.franchise_id").
+		Where("products.is_active = ? AND franchises.is_active = ? AND franchises.zip_code = ?", true, true, zip).
+		Find(&products).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch products"})
+		return
+	}
+
+	c.JSON(http.StatusOK, products)
+}
