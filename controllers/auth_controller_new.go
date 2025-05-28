@@ -147,11 +147,35 @@ func RegisterNew(c *gin.Context) {
 	}
 
 	// Create the user
+	// Create the user
 	if err := tx.Create(&user).Error; err != nil {
 		tx.Rollback()
 		log.Printf("User creation error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
+	}
+
+	// If role is franchise_owner, also create a matching franchise
+	if registerRequest.Role == database.RoleFranchiseOwner {
+		franchise := database.Franchise{
+			OwnerID:       user.ID,
+			Name:          user.Name,
+			Address:       user.Address,
+			City:          user.City,
+			State:         user.State,
+			ZipCode:       user.ZipCode,
+			Phone:         user.Phone,
+			Email:         user.Email,
+			IsActive:      false,
+			ApprovalState: "pending",
+		}
+
+		if err := tx.Create(&franchise).Error; err != nil {
+			tx.Rollback()
+			log.Printf("Franchise creation error: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create franchise"})
+			return
+		}
 	}
 
 	// Create a welcome notification
