@@ -241,8 +241,14 @@ func ToggleProductStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, product)
 }
 func GetCustomerProducts(c *gin.Context) {
-	zip := c.Query("zip")
-	if zip == "" {
+	user, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User not found"})
+		return
+	}
+
+	customer := user.(database.User)
+	if customer.ZipCode == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ZIP code is required"})
 		return
 	}
@@ -251,7 +257,7 @@ func GetCustomerProducts(c *gin.Context) {
 	err := database.DB.
 		Preload("Franchise").
 		Joins("JOIN franchises ON franchises.id = products.franchise_id").
-		Where("products.is_active = ? AND franchises.is_active = ? AND franchises.zip_code = ?", true, true, zip).
+		Where("products.is_active = ? AND franchises.is_active = ? AND franchises.zip_code = ?", true, true, customer.ZipCode).
 		Find(&products).Error
 
 	if err != nil {
