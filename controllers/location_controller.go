@@ -701,7 +701,34 @@ func GetAllLocations(c *gin.Context) {
 
 	var locations []database.Location
 	if err := database.DB.Find(&locations).Error; err != nil {
+
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch locations"})
+		return
+	}
+
+	c.JSON(http.StatusOK, locations)
+}
+func GetMyLocations(c *gin.Context) {
+	role, exists := c.Get("role")
+	if !exists || role != "franchise_owner" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied"})
+		return
+	}
+
+	userID, _ := c.Get("user_id")
+
+	var user database.User
+	if err := database.DB.First(&user, userID).Error; err != nil || user.FranchiseID == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Franchise not linked to your account"})
+		return
+	}
+
+	var locations []database.Location
+	if err := database.DB.
+		Joins("JOIN franchise_locations fl ON fl.location_id = locations.id").
+		Where("fl.franchise_id = ?", *user.FranchiseID).
+		Find(&locations).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch service areas"})
 		return
 	}
 

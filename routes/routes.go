@@ -128,6 +128,7 @@ func SetupRoutes(r *gin.Engine) {
 
 		// Franchises
 		franchises := protected.Group("/franchises")
+		franchises.Use(middleware.FranchiseOwnerAuthMiddleware())
 		{
 			franchises.POST("", middleware.FranchiseOwnerAuthMiddleware(), controllers.CreateFranchise)
 			franchises.POST("/:id/approve", middleware.AdminAuthMiddleware(), controllers.ApproveFranchise)
@@ -135,6 +136,7 @@ func SetupRoutes(r *gin.Engine) {
 			franchises.PUT("/:id", middleware.AdminOrFranchiseAuthMiddleware(), controllers.UpdateFranchise)
 			franchises.GET("/:id/service-agents", middleware.AdminOrFranchiseAuthMiddleware(), controllers.GetFranchiseServiceAgents)
 			franchises.GET("/search", controllers.SearchFranchises)
+			franchises.GET("/locations", controllers.GetMyLocations)
 
 			//this route for dashboard
 			franchises.GET("/dashboard", controllers.GetFranchiseDashboard)
