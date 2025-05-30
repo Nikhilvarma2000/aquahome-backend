@@ -62,6 +62,7 @@ type UpdateProfileRequestNew struct {
 
 // UpdateUserProfileNew updates the profile of the authenticated user using GORM
 func UpdateUserProfileNew(c *gin.Context) {
+
 	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
@@ -135,6 +136,37 @@ func UpdateUserProfileNew(c *gin.Context) {
 		log.Printf("Database error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving updated profile"})
 		return
+	}
+
+	// 🔁 Auto-create franchise if role is franchise_owner and no franchise is linked
+	if user.Role == "franchise_owner" && user.FranchiseID == nil {
+		var existingFranchise database.Franchise
+		err := database.DB.Where("owner_id = ?", user.ID).First(&existingFranchise).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			franchise := database.Franchise{
+				OwnerID:       user.ID,
+				Name:          user.Name,
+				Address:       user.Address,
+				City:          user.City,
+				State:         user.State,
+				ZipCode:       user.ZipCode,
+				Phone:         user.Phone,
+				Email:         user.Email,
+				IsActive:      true,
+				ApprovalState: "approved",
+			}
+
+			if err := database.DB.Create(&franchise).Error; err != nil {
+				log.Printf("❌ Failed to create franchise for user ID %d: %v", user.ID, err)
+			} else {
+				user.FranchiseID = &franchise.ID
+				if err := database.DB.Save(&user).Error; err != nil {
+					log.Printf("❌ Failed to update user with new franchise ID: %v", err)
+				} else {
+					log.Printf("✅ Franchise (ID %d) created and linked to user ID %d", franchise.ID, user.ID)
+				}
+			}
+		}
 	}
 
 	// Hide sensitive fields

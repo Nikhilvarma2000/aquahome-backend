@@ -163,6 +163,7 @@ func RegisterNew(c *gin.Context) {
 	}
 
 	// If role is franchise_owner, also create a matching franchise
+	// ✅ If role is franchise_owner, create and link franchise
 	if registerRequest.Role == database.RoleFranchiseOwner {
 		franchise := database.Franchise{
 			OwnerID:       user.ID,
@@ -174,13 +175,22 @@ func RegisterNew(c *gin.Context) {
 			Phone:         user.Phone,
 			Email:         user.Email,
 			IsActive:      false,
-			ApprovalState: "pending",
+			ApprovalState: "pending", // change to "approved" if you want auto-approve
 		}
 
 		if err := tx.Create(&franchise).Error; err != nil {
 			tx.Rollback()
 			log.Printf("Franchise creation error: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create franchise"})
+			return
+		}
+
+		// ✅ Link the franchise to the user
+		user.FranchiseID = &franchise.ID
+		if err := tx.Save(&user).Error; err != nil {
+			tx.Rollback()
+			log.Printf("Failed to update user with franchise ID: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to link franchise to user"})
 			return
 		}
 	}
