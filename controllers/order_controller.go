@@ -314,20 +314,41 @@ func GetCustomerOrders(c *gin.Context) {
 
 	c.JSON(http.StatusOK, orders)
 }
-
 func GetAllOrders(c *gin.Context) {
 	role, exists := c.Get("role")
-	if !exists || role != "admin" {
+	if !exists || (role != "admin" && role != "franchise_owner") {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied"})
 		return
 	}
 
+	userID := c.MustGet("user_id").(uint)
+
 	var orders []database.Order
-	if err := database.DB.Preload("Product").Order("created_at DESC").Find(&orders).Error; err != nil {
+	var result *gorm.DB
+
+	if role == "admin" {
+		// Admin sees all orders
+		result = database.DB.Preload("Product").Order("created_at DESC").Find(&orders)
+	} else if role == "franchise_owner" {
+		// Franchise owner sees only their franchise's orders
+		var user database.User
+		if err := database.DB.First(&user, userID).Error; err != nil || user.FranchiseID == nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Franchise not linked to your account"})
+			return
+		}
+		result = database.DB.
+			Where("franchise_id = ?", *user.FranchiseID).
+			Preload("Product").
+			Order("created_at DESC").
+			Find(&orders)
+	}
+
+	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch orders"})
 		return
 	}
 
+	// Optional: Format as response struct if needed
 	type AdminOrderResponse struct {
 		ID              uint             `json:"id"`
 		Status          string           `json:"status"`
@@ -716,11 +737,10 @@ func AssignOrderToAgent(c *gin.Context) {
 	fmt.Println("🔥 AssignOrderToAgent route hit!")
 
 	role, _ := c.Get("role")
-	if role != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only admin can assign service agents"})
+	if role != "admin" && role != "franchise_owner" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied"})
 		return
 	}
-
 	orderIDStr := c.Param("id")
 	orderID, err := strconv.Atoi(orderIDStr)
 	if err != nil {

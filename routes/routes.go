@@ -144,6 +144,12 @@ func SetupRoutes(r *gin.Engine) {
 			//this route for dashboard
 			franchises.GET("/dashboard", controllers.GetFranchiseDashboard)
 
+			// ✅ Orders for franchise owner
+			franchises.GET("/orders", controllers.AdminGetOrders)
+
+			// ✅ Assign service agent to order (already supports franchise_owner in controller)
+			franchises.PATCH("/orders/:id/assign-agent", controllers.AssignOrderToAgent)
+
 		}
 
 		// Payments

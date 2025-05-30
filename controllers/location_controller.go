@@ -765,7 +765,7 @@ func AddFranchiseLocations(c *gin.Context) {
 			Name:     req.Name,
 			ZipCodes: pq.StringArray{zip},
 		}
-		if err := database.DB.Where("zip_code = ?", zip).FirstOrCreate(&location).Error; err != nil {
+		if err := database.DB.Where("? = ANY(zip_codes)", zip).FirstOrCreate(&location).Error; err != nil {
 			continue
 		}
 
