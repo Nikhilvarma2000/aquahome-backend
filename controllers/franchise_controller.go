@@ -70,10 +70,21 @@ func GetFranchiseDashboard(c *gin.Context) {
 
 	}
 
-	if role != "admin" {
-		var f database.Franchise
-		if err := database.DB.First(&f, franchiseID).Error; err != nil || f.OwnerID != userID {
+	var f database.Franchise
+	if err := database.DB.First(&f, franchiseID).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Franchise not found"})
+		return
+	}
+
+	// 🛡️ Access check for franchise_owner
+	if role == "franchise_owner" {
+		if f.OwnerID != userID {
 			c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission to view this dashboard"})
+			return
+		}
+
+		if !f.IsActive || f.ApprovalState != "approved" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Franchise not yet approved or activated"})
 			return
 		}
 	}

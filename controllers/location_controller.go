@@ -716,12 +716,23 @@ func GetMyLocations(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
+	userID := c.GetUint("user_id")
 
 	var user database.User
-	if err := database.DB.First(&user, userID).Error; err != nil || user.FranchiseID == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Franchise not linked to your account"})
+	if err := database.DB.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user"})
 		return
+	}
+
+	// 🔁 Auto-link franchise if not set
+	if user.FranchiseID == nil {
+		var franchise database.Franchise
+		if err := database.DB.Where("owner_id = ?", userID).First(&franchise).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Franchise not linked to your account"})
+			return
+		}
+		user.FranchiseID = &franchise.ID
+		_ = database.DB.Save(&user)
 	}
 
 	var locations []database.Location
@@ -742,11 +753,23 @@ func AddFranchiseLocations(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
+	userID := c.GetUint("user_id")
+
 	var user database.User
-	if err := database.DB.First(&user, userID).Error; err != nil || user.FranchiseID == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Franchise not linked to your account"})
+	if err := database.DB.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user"})
 		return
+	}
+
+	// 🔁 Auto-link franchise if not set
+	if user.FranchiseID == nil {
+		var franchise database.Franchise
+		if err := database.DB.Where("owner_id = ?", userID).First(&franchise).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Franchise not linked to your account"})
+			return
+		}
+		user.FranchiseID = &franchise.ID
+		_ = database.DB.Save(&user)
 	}
 
 	var req struct {
