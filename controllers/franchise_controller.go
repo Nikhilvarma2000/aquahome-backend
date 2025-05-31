@@ -43,11 +43,31 @@ func GetFranchiseDashboard(c *gin.Context) {
 		franchiseID = uint(id)
 	} else {
 		var user database.User
-		if err := database.DB.First(&user, userID).Error; err != nil || user.FranchiseID == nil {
+		if err := database.DB.First(&user, userID).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "User not found"})
+			return
+		}
+
+		if user.FranchiseID == nil && user.Role == "franchise_owner" {
+			var f database.Franchise
+			if err := database.DB.Where("owner_id = ?", userID).First(&f).Error; err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "No franchise linked to your account"})
+				return
+			}
+
+			// ✅ Update user with the linked franchise_id
+			user.FranchiseID = &f.ID
+			if err := database.DB.Save(&user).Error; err != nil {
+				log.Println("Failed to update user franchise ID:", err)
+			}
+			franchiseID = f.ID
+		} else if user.FranchiseID != nil {
+			franchiseID = *user.FranchiseID
+		} else {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Franchise not found for user"})
 			return
 		}
-		franchiseID = *user.FranchiseID
+
 	}
 
 	if role != "admin" {

@@ -347,3 +347,28 @@ func UpdateUserLocation(c *gin.Context) {
 		"user":    user,
 	})
 }
+
+// GetServiceAgentsForFranchise lists all service agents for franchise owners
+func GetServiceAgentsForFranchise(c *gin.Context) {
+	role, _ := c.Get("role")
+	if role != "franchise_owner" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied"})
+		return
+	}
+
+	var agents []database.User
+	if err := database.DB.
+		Where("role = ?", "service_agent").
+		Find(&agents).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch service agents"})
+		return
+	}
+
+	// Hide sensitive fields
+	for i := range agents {
+		agents[i].Password = ""
+		agents[i].PasswordHash = ""
+	}
+
+	c.JSON(http.StatusOK, agents)
+}

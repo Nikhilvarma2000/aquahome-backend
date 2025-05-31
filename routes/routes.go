@@ -149,6 +149,7 @@ func SetupRoutes(r *gin.Engine) {
 
 			// ✅ Assign service agent to order (already supports franchise_owner in controller)
 			franchises.PATCH("/orders/:id/assign-agent", controllers.AssignOrderToAgent)
+			franchises.GET("/service-agents", controllers.GetServiceAgentsForFranchise)
 
 		}
 
