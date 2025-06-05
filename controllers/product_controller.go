@@ -1,14 +1,12 @@
-// aquahome/controllers/product_controller.go
-
 package controllers
 
 import (
 	"errors"
 	"log"
 	"net/http"
-	"path/filepath" // 🆕 ADD THIS IMPORT
+	"path/filepath" // 
 	"strconv"
-	"time" // 🆕 ADD THIS IMPORT, often needed for unique filenames
+	"time" // 
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -16,7 +14,7 @@ import (
 	"aquahome/database"
 )
 
-// 🆕 MODIFIED: ProductRequest to handle file upload instead of direct ImageURL
+//  MODIFIED: ProductRequest to handle file upload instead of direct ImageURL
 type ProductRequest struct {
 	Name             string  `form:"name" binding:"required"` // 🆕 Changed to `form` tag
 	Description      string  `form:"description" binding:"required"`
@@ -42,8 +40,8 @@ func CreateProduct(c *gin.Context) {
 	}
 
 	var request ProductRequest
-	// 🆕 Use c.ShouldBind to parse multipart form data
-	if err := c.ShouldBind(&request); err != nil { // 🆕 Changed from ShouldBindJSON
+	//  Use c.ShouldBind to parse multipart form data
+	if err := c.ShouldBind(&request); err != nil { //  Changed from ShouldBindJSON
 		log.Println("Product creation bind error:", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -53,7 +51,7 @@ func CreateProduct(c *gin.Context) {
 	var imageURL string
 	if request.ImageFile != nil {
 		// Define upload directory
-		uploadDir := "./uploads/products" // 🆕 Ensure this directory exists relative to your executable
+		uploadDir := "./uploads/products" //  Ensure this directory exists relative to your executable
 		// Create a unique filename
 		filename := strconv.FormatInt(time.Now().UnixNano(), 10) + filepath.Ext(request.ImageFile.Filename)
 		filePath := filepath.Join(uploadDir, filename)
@@ -78,7 +76,7 @@ func CreateProduct(c *gin.Context) {
 		MaintenanceCycle: request.MaintenanceCycle,
 		IsActive:         request.IsActive,
 		FranchiseID:      request.FranchiseID,
-		ImageURL:         imageURL, // 🆕 Save the generated image URL
+		ImageURL:         imageURL, //  Save the generated image URL
 	}
 
 	if err := database.DB.Create(&product).Error; err != nil {
@@ -137,8 +135,8 @@ func UpdateProduct(c *gin.Context) {
 	}
 
 	var request ProductRequest
-	// 🆕 Use c.ShouldBind to parse multipart form data
-	if err := c.ShouldBind(&request); err != nil { // 🆕 Changed from ShouldBindJSON
+	//  Use c.ShouldBind to parse multipart form data
+	if err := c.ShouldBind(&request); err != nil { //  Changed from ShouldBindJSON
 		log.Println("Product update bind error:", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -174,7 +172,7 @@ func UpdateProduct(c *gin.Context) {
 	product.MaintenanceCycle = request.MaintenanceCycle
 	product.IsActive = request.IsActive
 	product.FranchiseID = request.FranchiseID
-	product.ImageURL = imageURL // 🆕 Update with new or existing image URL
+	product.ImageURL = imageURL //  Update with new or existing image URL
 
 	if err := database.DB.Save(&product).Error; err != nil {
 		log.Println("Product update DB error:", err)
@@ -225,7 +223,7 @@ func ToggleProductStatus(c *gin.Context) {
 	}
 
 	var body struct {
-		IsActive bool `json:"isActive"` // ✅ MATCHES frontend key
+		IsActive bool `json:"isActive"` //  MATCHES frontend key
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})

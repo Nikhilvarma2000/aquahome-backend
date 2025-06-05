@@ -13,6 +13,8 @@ import (
 func SetupRoutes(r *gin.Engine) {
 	fmt.Println("✅ SetupRoutes called")
 
+	r.Static("/uploads", "./uploads") // Ensure './uploads' directory exists
+
 	// Public routes (no authentication required)
 	public := r.Group("/api")
 	{
@@ -47,7 +49,6 @@ func SetupRoutes(r *gin.Engine) {
 		protected.POST("/profile/location", controllers.UpdateUserLocation)
 		protected.POST("/profile/change-password/v2", controllers.ChangePasswordNew)
 
-		// Admin routes
 		// Admin routes
 		admin := protected.Group("/admin")
 		admin.Use(middleware.AdminAuthMiddleware())
